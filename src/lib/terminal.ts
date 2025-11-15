@@ -1,125 +1,82 @@
 import chalk from "chalk";
-import ora, { Ora } from "ora";
-
-type LogLevel = "info" | "error" | "warn" | "success";
 
 class Terminal {
-  private formatLogMessage(
-    fnName: string,
-    message: string,
-    level: LogLevel
-  ): string {
-    const timestamp = new Date().toISOString();
-    const levelStr = level.toUpperCase().padEnd(7);
-    return `${timestamp} [${levelStr}] [${fnName}] ${message}`;
-  }
-
-  log(fnName: string, message: string): void {
-    console.log(this.formatLogMessage(fnName, message, "info"));
-  }
-
   error(message: string, fnName?: string, error?: any): void {
-    if (fnName) {
-      const errorMsg = error
-        ? `${message} - ${error.message || error}`
-        : message;
-      console.error(this.formatLogMessage(fnName, errorMsg, "error"));
+    if (fnName && error) {
+      const errorMsg = error.message || error;
+      console.error(
+        chalk.hex("#B91C1C").bold("✗ ") + chalk.hex("#DC2626")(message)
+      );
+      console.error(chalk.hex("#6B7280")(`  ${errorMsg}`));
     } else {
-      console.log(chalk.red("✗") + " " + chalk.white(message));
+      console.log(
+        chalk.hex("#B91C1C").bold("✗ ") + chalk.hex("#DC2626")(message)
+      );
     }
   }
 
-  warn(message: string, fnName?: string): void {
-    if (fnName) {
-      console.warn(this.formatLogMessage(fnName, message, "warn"));
-    } else {
-      console.log(chalk.yellow("⚠") + " " + chalk.white(message));
-    }
+  warn(message: string): void {
+    console.log(
+      chalk.hex("#B45309").bold("⚠ ") + chalk.hex("#D97706")(message)
+    );
   }
 
-  success(message: string, fnName?: string): void {
-    if (fnName) {
-      console.log(this.formatLogMessage(fnName, message, "success"));
-    } else {
-      console.log(chalk.green("✓") + " " + chalk.white(message));
-    }
-  }
-
-  info(message: string): void {
-    console.log(chalk.blue("ℹ") + " " + chalk.white(message));
+  success(message: string): void {
+    console.log(
+      chalk.hex("#047857").bold("✓ ") + chalk.hex("#059669")(message)
+    );
   }
 
   header(message: string): void {
-    console.log("\n" + chalk.bold.cyan(message));
+    const line = chalk.hex("#7C3AED")("━".repeat(60));
+    console.log("\n" + line);
+    console.log(
+      chalk.hex("#7C3AED")("  ") + chalk.hex("#1F2937").bold(message)
+    );
+    console.log(line + "\n");
   }
 
   separator(): void {
-    console.log(chalk.gray("─".repeat(50)));
+    console.log(chalk.hex("#9CA3AF")("─".repeat(60)));
   }
 
   label(label: string, value: string): void {
-    console.log(chalk.gray(label + ":") + " " + chalk.white(value));
+    console.log(
+      chalk.hex("#7C3AED")(label + ":") + " " + chalk.hex("#374151")(value)
+    );
   }
 
   highlight(message: string): void {
-    console.log(chalk.cyan(message));
+    console.log(
+      chalk.hex("#C026D3").bold("▸ ") + chalk.hex("#D946EF")(message)
+    );
   }
 
   dim(message: string): void {
-    console.log(chalk.gray(message));
-  }
-
-  spinner(text: string): Ora {
-    return ora({
-      text: chalk.white(text),
-      color: "cyan",
-    });
+    console.log(chalk.hex("#6B7280")(message));
   }
 
   newLine(): void {
     console.log();
   }
 
-  clear(): void {
-    console.clear();
-  }
-
-  box(
-    message: string,
-    type: "success" | "error" | "warning" | "info" = "info"
-  ): void {
-    const colors = {
-      success: chalk.green,
-      error: chalk.red,
-      warning: chalk.yellow,
-      info: chalk.cyan,
-    };
-
-    const color = colors[type];
-    const lines = message.split("\n");
-    const maxLength = Math.max(...lines.map((line) => line.length));
-    const padding = 2;
-    const width = maxLength + padding * 2;
-
-    console.log();
-    console.log(color("┌" + "─".repeat(width) + "┐"));
-    lines.forEach((line) => {
-      const spaces = " ".repeat(width - line.length - padding);
-      console.log(
-        color("│") + " ".repeat(padding) + line + spaces + color("│")
-      );
-    });
-    console.log(color("└" + "─".repeat(width) + "┘"));
-    console.log();
-  }
-
   usage(command: string, description: string): void {
-    console.log(chalk.bold("Usage:") + " " + chalk.cyan(command));
-    console.log(chalk.gray(description));
+    console.log(
+      chalk.hex("#7C3AED").bold("Usage: ") + chalk.hex("#0891B2")(command)
+    );
+    console.log(chalk.hex("#6B7280")(description));
   }
 
   option(flag: string, description: string): void {
-    console.log("  " + chalk.cyan(flag.padEnd(20)) + chalk.gray(description));
+    console.log(
+      "  " +
+        chalk.hex("#0891B2")(flag.padEnd(25)) +
+        chalk.hex("#374151")(description)
+    );
+  }
+
+  section(title: string): void {
+    console.log(chalk.hex("#7C3AED").bold("\n" + title + ":"));
   }
 }
 

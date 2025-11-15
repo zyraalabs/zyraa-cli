@@ -15,17 +15,17 @@ export function saveToken(token: string): void {
     writeFileSync(CONFIG_FILE, token);
     terminal.success("Token saved successfully");
   } catch (error) {
-    terminal.error("Failed to save token", "saveToken", error);
+    terminal.error("Failed to save token", undefined, error);
     throw error;
   }
 }
 
 export function showConfigStatus(): void {
-  terminal.header("Zyra CLI Configuration Status");
-  terminal.separator();
+  terminal.header("Configuration Status");
 
   if (!existsSync(CONFIG_FILE)) {
     terminal.warn("No configuration found");
+    terminal.newLine();
     terminal.dim("Run 'zyraa config <token>' to configure the CLI");
     terminal.newLine();
     return;
@@ -33,11 +33,12 @@ export function showConfigStatus(): void {
 
   try {
     const token = readFileSync(CONFIG_FILE, "utf-8");
-    terminal.success("Configuration file exists");
+    terminal.success("Configuration found");
+    terminal.newLine();
     terminal.label("Location", CONFIG_FILE);
     terminal.label("Token", `${token.substring(0, 20)}...`);
   } catch (error) {
-    terminal.error("Failed to read configuration", "showConfigStatus", error);
+    terminal.error("Failed to read configuration", undefined, error);
   }
 
   terminal.newLine();
