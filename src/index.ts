@@ -3,6 +3,7 @@
 import { showHelp } from "./components/help.js";
 import { showVersion } from "./components/version.js";
 import { handleConfigCommand } from "./components/config.js";
+import { handleLoginCommand } from "./components/login.js";
 import { terminal } from "./lib/terminal.js";
 
 function main(): void {
@@ -26,6 +27,10 @@ function main(): void {
   }
 
   switch (command) {
+    case "login":
+      handleLoginCommand();
+      break;
+
     case "config":
       handleConfigCommand(args.slice(1));
       break;

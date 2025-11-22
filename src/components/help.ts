@@ -11,6 +11,7 @@ export function showHelp(): void {
   terminal.newLine();
 
   terminal.section("Commands");
+  terminal.option("login", "Authenticate CLI with your Zyraa account");
   terminal.option("config <token>", "Configure CLI with authentication token");
   terminal.option("config --status", "Show current configuration status");
   terminal.option("--version, -v", "Show version information");
@@ -18,6 +19,7 @@ export function showHelp(): void {
   terminal.newLine();
 
   terminal.section("Examples");
+  terminal.dim("  $ zyraa login");
   terminal.dim("  $ zyraa config eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
   terminal.dim("  $ zyraa config --status");
   terminal.newLine();
