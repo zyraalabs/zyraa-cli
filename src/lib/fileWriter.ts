@@ -7,9 +7,30 @@ export interface WriteResult {
   failed: { path: string; error: string }[];
 }
 
+/**
+ // Input: file.path = "src/app/page.tsx"
+// Current dir: /Users/you/project
+
+// Step 1: Create full path
+fullPath = resolve("/Users/you/project", "src/app/page.tsx")
+// Result: "/Users/you/project/src/app/page.tsx"
+
+// Step 2: Check security (starts with project dir? ✅)
+
+// Step 3: Create directory
+mkdirSync("/Users/you/project/src/app", { recursive: true })
+
+// Step 4: Write file
+writeFileSync(
+  "/Users/you/project/src/app/page.tsx",
+  "export default function Home() {...}",
+  "utf-8"
+)
+
+ */
 export function writeFiles(
   files: ParsedFile[],
-  targetDir: string
+  targetDir: string,
 ): WriteResult {
   const created: string[] = [];
   const failed: { path: string; error: string }[] = [];
