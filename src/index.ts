@@ -4,7 +4,7 @@ import { showHelp } from "./components/help.js";
 import { showVersion } from "./components/version.js";
 import { handleConfigCommand } from "./components/config.js";
 import { handleLoginCommand } from "./components/login.js";
-import { terminal } from "./lib/terminal.js";
+import { handleGenerateCommand } from "./components/generate.js";
 
 function main(): void {
   const args = process.argv.slice(2);
@@ -36,11 +36,10 @@ function main(): void {
       break;
 
     default:
-      terminal.error(`Unknown command: ${command}`);
-      terminal.newLine();
-      terminal.dim("Run 'zyraa --help' for usage information");
-      terminal.newLine();
-      process.exit(1);
+      // Treat any non-command input as a generation prompt
+      const prompt = args.join(" ");
+      handleGenerateCommand(prompt);
+      break;
   }
 }
 

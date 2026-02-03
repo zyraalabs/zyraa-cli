@@ -19,7 +19,11 @@ export function handleConfigCommand(args: string[]): void {
       "Configure CLI with your authentication token"
     );
     terminal.newLine();
-    terminal.dim("Get your token from: https://zyra.dev/dashboard");
+    terminal.dim(
+      `Get your token from: ${
+        process.env.ZYRAA_DASHBOARD_URL || "http://localhost:3000"
+      }/dashboard`
+    );
     terminal.newLine();
     process.exit(1);
   }
