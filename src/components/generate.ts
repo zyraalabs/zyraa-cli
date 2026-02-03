@@ -34,7 +34,7 @@ export async function handleGenerateCommand(prompt: string): Promise<void> {
     terminal.dim(`Tokens used: ${usage.inputTokens + usage.outputTokens}`);
     terminal.newLine();
 
-    await handleDependencies(targetDir, wasScaffolded);
+    await handleDependencies(targetDir, wasScaffolded, output);
 
     terminal.separator();
     terminal.newLine();

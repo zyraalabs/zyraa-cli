@@ -4,15 +4,9 @@ import { installDependencies } from "../../lib/projectSetup.js";
 
 export async function handleDependencies(
   targetDir: string,
-  wasScaffolded: boolean
+  _wasScaffolded: boolean,
+  _generatedOutput: string
 ): Promise<void> {
-  if (wasScaffolded) {
-    terminal.newLine();
-    terminal.highlight("Scaffolding already installed dependencies, skipping...");
-    terminal.newLine();
-    return;
-  }
-
   terminal.newLine();
   const spinner = ora("Installing dependencies...").start();
 

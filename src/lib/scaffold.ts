@@ -9,7 +9,7 @@ export async function runScaffoldCommand(
   terminal.dim(`  ${command}`);
   terminal.newLine();
 
-  await runCommand("sh", ["-c", command], { cwd: projectDir });
+  await runCommand(command, [], { cwd: projectDir });
 
   terminal.newLine();
   terminal.success("Scaffold completed");

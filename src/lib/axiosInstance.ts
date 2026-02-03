@@ -7,7 +7,7 @@ const CONFIG_FILE = join(homedir(), ".zyra", "config");
 
 const axiosInstance = axios.create({
   baseURL: process.env.CLI_BACKEND_URL || "http://localhost:4000",
-  timeout: 120000,
+  timeout: 300000,
 });
 
 axiosInstance.interceptors.request.use((config) => {

@@ -13,11 +13,19 @@ export function runCommand(
   options: SpawnOptions,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd,
-      stdio: options.inheritStdio ? "inherit" : ["ignore", "pipe", "pipe"],
-      shell: true,
-    });
+    const isCompoundCommand = command.includes("&&") || command.includes("||");
+
+    const child = isCompoundCommand
+      ? spawn(command, {
+          cwd: options.cwd,
+          stdio: options.inheritStdio ? "inherit" : ["ignore", "pipe", "pipe"],
+          shell: true,
+        })
+      : spawn(command, args, {
+          cwd: options.cwd,
+          stdio: options.inheritStdio ? "inherit" : ["ignore", "pipe", "pipe"],
+          shell: true,
+        });
 
     if (!options.inheritStdio) {
       const handleData = (data: Buffer) => {
