@@ -13,9 +13,9 @@ export function runCommand(
   options: SpawnOptions,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const isCompoundCommand = command.includes("&&") || command.includes("||");
+    const isFullCommand = args.length === 0 || command.includes("&&") || command.includes("||");
 
-    const child = isCompoundCommand
+    const child = isFullCommand
       ? spawn(command, {
           cwd: options.cwd,
           stdio: options.inheritStdio ? "inherit" : ["ignore", "pipe", "pipe"],
