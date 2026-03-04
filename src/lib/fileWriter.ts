@@ -15,7 +15,7 @@ export interface WriteResult {
 fullPath = resolve("/Users/you/project", "src/app/page.tsx")
 // Result: "/Users/you/project/src/app/page.tsx"
 
-// Step 2: Check security (starts with project dir? ✅)
+// Step 2: Check security (starts with project dir? )
 
 // Step 3: Create directory
 mkdirSync("/Users/you/project/src/app", { recursive: true })
@@ -26,7 +26,6 @@ writeFileSync(
   "export default function Home() {...}",
   "utf-8"
 )
-
  */
 export function writeFiles(
   files: ParsedFile[],

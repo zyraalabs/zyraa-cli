@@ -36,7 +36,6 @@ function main(): void {
       break;
 
     default:
-      // Treat any non-command input as a generation prompt
       const prompt = args.join(" ");
       handleGenerateCommand(prompt);
       break;
