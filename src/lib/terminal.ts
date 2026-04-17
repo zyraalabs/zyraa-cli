@@ -78,6 +78,12 @@ class Terminal {
   section(title: string): void {
     console.log(chalk.hex("#7C3AED").bold("\n" + title + ":"));
   }
+
+  step(message: string): void {
+    console.log(
+      chalk.hex("#6B7280")("  └ ") + chalk.hex("#0891B2")(message)
+    );
+  }
 }
 
 export const terminal = new Terminal();

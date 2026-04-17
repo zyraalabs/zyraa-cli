@@ -1,50 +1,21 @@
-import ora from "ora";
-import { terminal } from "../../lib/terminal.js";
 import { detectFrameworkApi } from "../../api/endpoints/detectFramework.js";
-import { runScaffoldCommand } from "../../lib/scaffold.js";
+import { IS_MOCK, MOCK_DETECTION } from "../../lib/mock.js";
 
-export interface FrameworkResult {
+export interface DetectionResult {
   framework: string;
-  wasScaffolded: boolean;
+  reasoning: string;
+  needsScaffold: boolean;
+  scaffoldCommand: string;
 }
 
-export async function detectFramework(
-  prompt: string,
-  targetDir: string
-): Promise<FrameworkResult> {
-  const spinner = ora("Detecting framework...").start();
+export async function detectFramework(prompt: string): Promise<DetectionResult> {
+  if (IS_MOCK) return MOCK_DETECTION;
+
   const result = await detectFrameworkApi.detect({ prompt });
 
   if (result.code === "error" || !result.data.success) {
-    spinner.warn("Framework detection failed, defaulting to Next.js");
-    terminal.newLine();
-    return { framework: "nextjs", wasScaffolded: false };
+    return { framework: "nextjs", reasoning: "Full-stack React framework", needsScaffold: false, scaffoldCommand: "" };
   }
 
-  const { framework, reasoning, needsScaffold, scaffoldCommand } =
-    result.data.data;
-
-  spinner.succeed(`Framework detected: ${framework} - ${reasoning}`);
-  terminal.newLine();
-
-  if (!needsScaffold) {
-    terminal.highlight(
-      `No scaffolding needed for ${framework} - generating all files`
-    );
-    terminal.newLine();
-    return { framework, wasScaffolded: false };
-  }
-
-  try {
-    await runScaffoldCommand(scaffoldCommand, targetDir);
-    return { framework, wasScaffolded: true };
-  } catch (error) {
-    const err = error as Error;
-    terminal.error("Scaffold command failed");
-    terminal.dim(err.message);
-    terminal.newLine();
-    terminal.warn("Continuing with file generation (will generate all files)");
-    terminal.newLine();
-    return { framework, wasScaffolded: false };
-  }
+  return result.data.data as DetectionResult;
 }
