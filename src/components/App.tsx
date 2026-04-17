@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import { Generate } from "./Generate.js";
+import { SessionSummary } from "./SessionSummary.js";
 import { VERSION } from "../lib/constants.js";
+import type { GenerationResult } from "./generate/useGeneration.js";
 
 type AppState = "idle" | "generating";
 
@@ -19,6 +21,7 @@ export function App() {
   const [appState, setAppState] = useState<AppState>("idle");
   const [input, setInput] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [sessions, setSessions] = useState<GenerationResult[]>([]);
 
   useInput((char, key) => {
     if (appState !== "idle") return;
@@ -48,19 +51,41 @@ export function App() {
     }
   });
 
+  function handleDone(result: GenerationResult) {
+    setSessions((prev) => [...prev, result]);
+    setAppState("idle");
+  }
+
   if (appState === "generating") {
-    return <Generate prompt={prompt} onDone={() => setAppState("idle")} />;
+    return (
+      <Box flexDirection="column" paddingY={1}>
+        {sessions.length > 0 && (
+          <Box flexDirection="column">
+            {sessions.map((s, i) => <SessionSummary key={i} result={s} />)}
+          </Box>
+        )}
+        <Generate prompt={prompt} onDone={handleDone} />
+      </Box>
+    );
   }
 
   return (
     <Box flexDirection="column" paddingY={1}>
-      <Box borderStyle="round" borderColor="#7C3AED" paddingX={2} marginBottom={1}>
-        <Box flexGrow={1}>
-          <Text color="#7C3AED" bold>{"⬡  Zyraa"}</Text>
-          <Text color="#6B7280">{"  ·  AI-powered full-stack builder"}</Text>
+      {sessions.length === 0 && (
+        <Box borderStyle="round" borderColor="#7C3AED" paddingX={2} marginBottom={1} marginX={1}>
+          <Box flexGrow={1}>
+            <Text color="#7C3AED" bold>{"⬡  Zyraa"}</Text>
+            <Text color="#6B7280">{"  ·  AI-powered full-stack builder"}</Text>
+          </Box>
+          <Text color="#6B7280">{`v${VERSION}`}</Text>
         </Box>
-        <Text color="#6B7280">{`v${VERSION}`}</Text>
-      </Box>
+      )}
+
+      {sessions.length > 0 && (
+        <Box flexDirection="column">
+          {sessions.map((s, i) => <SessionSummary key={i} result={s} />)}
+        </Box>
+      )}
 
       <Box paddingX={1} flexDirection="column" gap={1}>
         <Box gap={2} borderStyle="round" borderColor="#374151" paddingX={2}>
@@ -68,7 +93,11 @@ export function App() {
           <Text>{input}<Cursor /></Text>
         </Box>
         <Box paddingX={1}>
-          <Text color="#6B7280" dimColor>{"describe what you want to build  ·  enter to generate  ·  ctrl+c to exit"}</Text>
+          <Text color="#6B7280" dimColor>
+            {sessions.length === 0
+              ? "describe what you want to build  ·  enter to generate  ·  ctrl+c to exit"
+              : "describe your next change  ·  enter to continue  ·  ctrl+c to exit"}
+          </Text>
         </Box>
       </Box>
     </Box>

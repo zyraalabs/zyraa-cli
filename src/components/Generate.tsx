@@ -7,10 +7,10 @@ import { Divider } from "./ui/Divider.js";
 import { GeneratingView } from "./generate/GeneratingView.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
-import { useGeneration } from "./generate/useGeneration.js";
+import { useGeneration, type GenerationResult } from "./generate/useGeneration.js";
 import { IS_MOCK } from "../lib/mock.js";
 
-export function Generate({ prompt, onDone }: { prompt: string; onDone?: () => void }) {
+export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result: GenerationResult) => void }) {
   const { exit } = useApp();
   const {
     stage, framework, reasoning, wasScaffolded,
@@ -20,7 +20,13 @@ export function Generate({ prompt, onDone }: { prompt: string; onDone?: () => vo
 
   useInput(() => {
     if (stage === "done" || stage === "error") {
-      if (onDone) onDone(); else exit();
+      const result: GenerationResult = {
+        prompt, framework, reasoning,
+        fileCount: generatedFiles.length,
+        timings, usage, installWarning,
+        error: error ?? null,
+      };
+      if (onDone) onDone(result); else exit();
     }
   }, { isActive: stage === "done" || stage === "error" });
 

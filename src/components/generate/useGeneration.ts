@@ -22,6 +22,17 @@ export interface Timings {
   total?: number;
 }
 
+export interface GenerationResult {
+  prompt: string;
+  framework: string;
+  reasoning: string;
+  fileCount: number;
+  timings: Timings;
+  usage: { inputTokens: number; outputTokens: number } | null;
+  installWarning: string;
+  error: AppError | null;
+}
+
 function resolveError(err: unknown): AppError {
   if (!(err instanceof Error)) return { message: "An unexpected error occurred" };
   if (err.message.includes("ECONNREFUSED"))
