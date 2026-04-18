@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Box, Text, useApp } from "ink";
 import { Header } from "./ui/Header.js";
 import { Badge } from "./ui/Badge.js";
@@ -18,10 +18,9 @@ export function Login() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (stage === "done" || stage === "error") {
-      const id = setTimeout(exit, 150);
-      return () => clearTimeout(id);
-    }
+    if (stage !== "done" && stage !== "error") return;
+    const id = setTimeout(exit, 150);
+    return () => clearTimeout(id);
   }, [stage, exit]);
 
   useEffect(() => {
