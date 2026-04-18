@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Box, Text, useInput, useApp } from "ink";
+import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { Generate } from "./Generate.js";
 import { SessionSummary } from "./SessionSummary.js";
 import { VERSION } from "../lib/constants.js";
@@ -18,10 +18,18 @@ function Cursor() {
 
 export function App() {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const [appState, setAppState] = useState<AppState>("idle");
   const [input, setInput] = useState("");
   const [prompt, setPrompt] = useState("");
   const [sessions, setSessions] = useState<GenerationResult[]>([]);
+
+  const termWidth = stdout?.columns ?? 80;
+  // prefix "❯ " = 2 chars + paddingX 2*2 = 4 + border 2 = 6, plus outer paddingX 2
+  const maxVisible = termWidth - 12;
+  const displayInput = input.length > maxVisible
+    ? "…" + input.slice(-(maxVisible - 1))
+    : input;
 
   useInput((char, key) => {
     if (appState !== "idle") return;
@@ -47,7 +55,7 @@ export function App() {
     }
 
     if (char && !key.ctrl && !key.meta) {
-      setInput((prev) => prev + char);
+      setInput((prev) => prev + char.replace(/[\r\n]/g, " "));
     }
   });
 
@@ -90,7 +98,7 @@ export function App() {
       <Box paddingX={1} flexDirection="column" gap={1}>
         <Box gap={2} borderStyle="round" borderColor="#374151" paddingX={2}>
           <Text color="#7C3AED" bold>{"❯"}</Text>
-          <Text>{input}<Cursor /></Text>
+          <Text>{displayInput}<Cursor /></Text>
         </Box>
         <Box paddingX={1}>
           <Text color="#6B7280" dimColor>
