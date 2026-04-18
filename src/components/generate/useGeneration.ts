@@ -7,7 +7,13 @@ import { writeFiles } from "../../lib/fileWriter.js";
 import { installDependencies } from "../../lib/projectSetup.js";
 import { nextActionWord } from "../../lib/actionWords.js";
 
-export type Stage = "detecting" | "scaffolding" | "generating" | "installing" | "done" | "error";
+export type Stage =
+  | "detecting"
+  | "scaffolding"
+  | "generating"
+  | "installing"
+  | "done"
+  | "error";
 
 export interface AppError {
   message: string;
@@ -34,10 +40,17 @@ export interface GenerationResult {
 }
 
 function resolveError(err: unknown): AppError {
-  if (!(err instanceof Error)) return { message: "An unexpected error occurred" };
+  if (!(err instanceof Error))
+    return { message: "An unexpected error occurred" };
   if (err.message.includes("ECONNREFUSED"))
-    return { message: "Cannot connect to server", hint: "Start the backend: pnpm dev" };
-  if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized"))
+    return {
+      message: "Cannot connect to server",
+      hint: "Start the backend: pnpm dev",
+    };
+  if (
+    err.message.includes("401") ||
+    err.message.toLowerCase().includes("unauthorized")
+  )
     return { message: "Not authenticated", hint: "Run: zyraa login" };
   if (err.message.includes("429"))
     return { message: "Rate limit exceeded — try again shortly" };
@@ -52,7 +65,10 @@ export function useGeneration(prompt: string) {
   const [generatedFiles, setGeneratedFiles] = useState<string[]>([]);
   const [activeFile, setActiveFile] = useState("");
   const [actionWord, setActionWord] = useState(nextActionWord());
-  const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number } | null>(null);
+  const [usage, setUsage] = useState<{
+    inputTokens: number;
+    outputTokens: number;
+  } | null>(null);
   const [installWarning, setInstallWarning] = useState("");
   const [error, setError] = useState<AppError | null>(null);
   const [timings, setTimings] = useState<Timings>({});
@@ -68,10 +84,9 @@ export function useGeneration(prompt: string) {
 
   useEffect(() => {
     if (stage !== "generating") return;
-    const id = setInterval(() => setActionWord(nextActionWord()), 1600);
+    const id = setInterval(() => setActionWord(nextActionWord()), 3000);
     return () => clearInterval(id);
   }, [stage]);
-
 
   useEffect(() => {
     const run = async () => {
@@ -100,7 +115,11 @@ export function useGeneration(prompt: string) {
         let cur = "";
 
         const { output, usage: u } = await streamGenerate(
-          { prompt, framework: detection.framework, wasScaffolded: detection.needsScaffold },
+          {
+            prompt,
+            framework: detection.framework,
+            wasScaffolded: detection.needsScaffold,
+          },
           (chunk) => {
             buf += chunk;
             while (true) {
@@ -147,8 +166,16 @@ export function useGeneration(prompt: string) {
   }, []);
 
   return {
-    stage, framework, reasoning, wasScaffolded,
-    generatedFiles, activeFile, actionWord,
-    usage, installWarning, error, timings,
+    stage,
+    framework,
+    reasoning,
+    wasScaffolded,
+    generatedFiles,
+    activeFile,
+    actionWord,
+    usage,
+    installWarning,
+    error,
+    timings,
   };
 }
