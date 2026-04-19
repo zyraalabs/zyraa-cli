@@ -43,15 +43,11 @@ function resolveError(err: unknown): AppError {
   if (!(err instanceof Error))
     return { message: "An unexpected error occurred" };
   if (err.message.includes("ECONNREFUSED"))
-    return {
-      message: "Cannot connect to server",
-      hint: "Start the backend: pnpm dev",
-    };
-  if (
-    err.message.includes("401") ||
-    err.message.toLowerCase().includes("unauthorized")
-  )
-    return { message: "Not authenticated", hint: "Run: zyraa login" };
+    return { message: "Cannot connect to server", hint: "Start the backend: pnpm dev" };
+  if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized"))
+    return { message: err.message.includes("expired") ? "Session expired" : "Not authenticated", hint: "Run: zyraa login" };
+  if (err.message.includes("403") || err.message.toLowerCase().includes("limit"))
+    return { message: "Build limit reached", hint: "Upgrade your plan at zyraa.dev" };
   if (err.message.includes("429"))
     return { message: "Rate limit exceeded — try again shortly" };
   return { message: err.message };
