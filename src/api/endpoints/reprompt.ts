@@ -1,37 +1,33 @@
 import axiosInstance from "../../lib/axiosInstance.js";
-import { IS_MOCK, streamMockOutput } from "../../lib/mock.js";
 
-interface GenerateRequest {
+interface RepromptRequest {
+  generationId: string;
   prompt: string;
+  files: Array<{ path: string; content: string }>;
   framework?: string;
-  wasScaffolded?: boolean;
 }
 
-export interface GenerateResult {
+export interface RepromptResult {
   output: string;
   usage: { inputTokens: number; outputTokens: number };
-  generationId: string;
 }
 
-export async function streamGenerate(
-  params: GenerateRequest,
+export async function streamReprompt(
+  params: RepromptRequest,
   onChunk: (text: string) => void,
-): Promise<GenerateResult> {
-  if (IS_MOCK) return streamMockOutput(onChunk);
-
-  const response = await axiosInstance.post("/api/generate", params, {
-    responseType: "stream",
-  }).catch((err) => {
-    const status = err?.response?.status;
-    const message = err?.response?.data?.error ?? err.message;
-    if (status === 401 || status === 403) throw new Error(message);
-    throw err;
-  });
+): Promise<RepromptResult> {
+  const response = await axiosInstance
+    .post("/api/reprompt", params, { responseType: "stream" })
+    .catch((err) => {
+      const status = err?.response?.status;
+      const message = err?.response?.data?.error ?? err.message;
+      if (status === 401 || status === 403) throw new Error(message);
+      throw err;
+    });
 
   return new Promise((resolve, reject) => {
     let fullText = "";
     let usage = { inputTokens: 0, outputTokens: 0 };
-    let generationId = "";
     let buffer = "";
 
     response.data.on("data", (chunk: Buffer) => {
@@ -46,17 +42,15 @@ export async function streamGenerate(
             type: string;
             text?: string;
             usage?: typeof usage;
-            generationId?: string;
             message?: string;
           };
           if (event.type === "text" && event.text) {
             fullText += event.text;
             onChunk(event.text);
-          } else if (event.type === "done") {
-            if (event.usage) usage = event.usage;
-            if (event.generationId) generationId = event.generationId;
+          } else if (event.type === "done" && event.usage) {
+            usage = event.usage;
           } else if (event.type === "error") {
-            reject(new Error(event.message ?? "Generation failed"));
+            reject(new Error(event.message ?? "Reprompt failed"));
           }
         } catch {
           // skip malformed lines
@@ -64,7 +58,7 @@ export async function streamGenerate(
       }
     });
 
-    response.data.on("end", () => resolve({ output: fullText, usage, generationId }));
+    response.data.on("end", () => resolve({ output: fullText, usage }));
     response.data.on("error", (err: Error) => reject(err));
   });
 }

@@ -1,39 +1,45 @@
 import { Box, useApp, useInput } from "ink";
 import { Header } from "./ui/Header.js";
-import { Badge } from "./ui/Badge.js";
 import { Spinner } from "./ui/Spinner.js";
 import { StatusRow } from "./ui/StatusRow.js";
 import { Divider } from "./ui/Divider.js";
 import { GeneratingView } from "./generate/GeneratingView.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
-import { useGeneration, type GenerationResult } from "./generate/useGeneration.js";
-import { IS_MOCK } from "../lib/mock.js";
+import { useReprompt, type RepromptResult } from "./generate/useReprompt.js";
 
-export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result: GenerationResult) => void }) {
+interface Props {
+  prompt: string;
+  generationId: string;
+  framework: string;
+  onDone?: (result: RepromptResult) => void;
+}
+
+export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
   const { exit } = useApp();
   const {
-    stage, framework, reasoning, wasScaffolded,
-    generatedFiles, activeFile, actionWord,
-    usage, installWarning, error, timings, generationId,
-  } = useGeneration(prompt);
+    stage, changedFiles, activeFile, actionWord,
+    usage, installWarning, error, timings, selectedCount,
+  } = useReprompt(prompt, generationId, framework);
 
   useInput(() => {
     if (stage === "done" || stage === "error") {
-      const result: GenerationResult = {
-        prompt, framework, reasoning,
-        fileCount: generatedFiles.length,
-        timings, usage, installWarning,
+      const result: RepromptResult = {
+        prompt,
+        framework,
+        filesChanged: changedFiles.length,
+        timings,
+        usage,
+        installWarning,
         error: error ?? null,
-        generationId,
       };
       if (onDone) onDone(result); else exit();
     }
   }, { isActive: stage === "done" || stage === "error" });
 
-  const pastDetecting = stage !== "detecting";
-  const pastScaffolding = wasScaffolded && !["detecting", "scaffolding"].includes(stage);
-  const pastGenerating = generatedFiles.length > 0 && ["installing", "done"].includes(stage);
+  const pastAnalyzing = stage !== "analyzing";
+  const pastReading = !["analyzing", "reading"].includes(stage);
+  const pastReprompting = changedFiles.length > 0 && ["installing", "done"].includes(stage);
   const pastInstalling = stage === "done";
 
   return (
@@ -41,19 +47,17 @@ export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result:
       <Header prompt={prompt} />
 
       <Box flexDirection="column" paddingX={1} gap={1}>
-        {IS_MOCK && <Badge type="warn" label="Mock mode — no real API calls" />}
-
-        {pastDetecting && (
+        {pastAnalyzing && (
           <StatusRow
-            label={`${framework}${reasoning ? `  ·  ${reasoning}` : ""}`}
+            label={`${selectedCount} file${selectedCount !== 1 ? "s" : ""} selected`}
             timing={timings.detecting}
           />
         )}
-        {pastScaffolding && (
-          <StatusRow label="Project scaffolded" timing={timings.scaffolding} />
+        {pastReading && (
+          <StatusRow label="Files loaded" timing={timings.scaffolding} />
         )}
-        {pastGenerating && (
-          <StatusRow label={`${generatedFiles.length} files generated`} timing={timings.generating} />
+        {pastReprompting && (
+          <StatusRow label={`${changedFiles.length} files updated`} timing={timings.generating} />
         )}
         {pastInstalling && !installWarning && (
           <StatusRow label="Dependencies installed" timing={timings.installing} />
@@ -61,13 +65,13 @@ export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result:
 
         {stage !== "done" && stage !== "error" && <Divider />}
 
-        {stage === "detecting" && <Spinner label="Detecting framework..." />}
-        {stage === "scaffolding" && <Spinner label="Scaffolding project..." />}
-        {stage === "generating" && (
+        {stage === "analyzing" && <Spinner label="Analyzing project..." />}
+        {stage === "reading" && <Spinner label="Loading files..." />}
+        {stage === "reprompting" && (
           <GeneratingView
             activeFile={activeFile}
             actionWord={actionWord}
-            generatedFiles={generatedFiles}
+            generatedFiles={changedFiles}
           />
         )}
         {stage === "installing" && <Spinner label="Installing dependencies..." />}
@@ -77,8 +81,9 @@ export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result:
             installWarning={installWarning}
             usage={usage}
             framework={framework}
-            fileCount={generatedFiles.length}
+            fileCount={changedFiles.length}
             timings={timings}
+            mode="reprompt"
           />
         )}
 

@@ -9,6 +9,7 @@ interface Props {
   framework: string;
   fileCount: number;
   timings: Timings;
+  mode?: "generate" | "reprompt";
 }
 
 function MetaRow({ label, value }: { label: string; value: string }) {
@@ -22,7 +23,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function DoneView({ installWarning, usage, framework, fileCount, timings }: Props) {
+export function DoneView({ installWarning, usage, framework, fileCount, timings, mode = "generate" }: Props) {
   const tokens = usage ? (usage.inputTokens + usage.outputTokens).toLocaleString() : null;
 
   return (
@@ -41,7 +42,7 @@ export function DoneView({ installWarning, usage, framework, fileCount, timings 
 
       <Box flexDirection="column" gap={0} paddingLeft={1}>
         <MetaRow label="Framework" value={framework} />
-        <MetaRow label="Files" value={`${fileCount} created`} />
+        <MetaRow label="Files" value={`${fileCount} ${mode === "reprompt" ? "updated" : "created"}`} />
         {tokens && <MetaRow label="Tokens" value={tokens} />}
       </Box>
 
