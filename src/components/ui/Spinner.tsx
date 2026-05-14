@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Box, Text } from "ink";
+import { useTheme } from "./ThemeContext.js";
 
 const FRAMES = ["◐", "◓", "◑", "◒"];
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function Spinner({ label, suffix }: Props) {
+  const theme = useTheme();
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
@@ -18,9 +20,9 @@ export function Spinner({ label, suffix }: Props) {
 
   return (
     <Box gap={1}>
-      <Text color="#7C3AED">{FRAMES[frame]}</Text>
-      <Text color="#7C3AED">{label}</Text>
-      {suffix && <Text color="#0EA5E9">{suffix}</Text>}
+      <Text color={theme.brand}>{FRAMES[frame]}</Text>
+      <Text color={theme.brand}>{label}</Text>
+      {suffix && <Text color={theme.info}>{suffix}</Text>}
     </Box>
   );
 }

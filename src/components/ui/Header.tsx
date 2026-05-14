@@ -1,19 +1,21 @@
 import { Box, Text } from "ink";
 import { VERSION } from "../../lib/constants.js";
+import { useTheme } from "./ThemeContext.js";
 
 export function Header({ prompt }: { prompt: string }) {
+  const theme = useTheme();
   return (
     <Box flexDirection="column" marginBottom={1}>
-      <Box borderStyle="round" borderColor="#7C3AED" paddingX={2}>
+      <Box borderStyle="round" borderColor={theme.borderActive} paddingX={2}>
         <Box flexGrow={1}>
-          <Text color="#7C3AED" bold>{"⬡  Zyraa"}</Text>
-          <Text color="#6B7280">{"  ·  AI-powered full-stack builder"}</Text>
+          <Text color={theme.brandLight} bold>{"Z  Zyraa"}</Text>
+          <Text color={theme.fgMuted}>{"  ·  AI-powered full-stack builder"}</Text>
         </Box>
-        <Text color="#6B7280">{`v${VERSION}`}</Text>
+        <Text color={theme.fgSubtle}>{`v${VERSION}`}</Text>
       </Box>
-      <Box marginTop={1} paddingX={1} gap={2}>
-        <Text color="#7C3AED" bold>{"❯"}</Text>
-        <Text bold>{prompt}</Text>
+      <Box marginTop={1} paddingX={2} gap={2}>
+        <Text color={theme.brand} bold>{"❯"}</Text>
+        <Text color={theme.fg} bold>{prompt}</Text>
       </Box>
     </Box>
   );

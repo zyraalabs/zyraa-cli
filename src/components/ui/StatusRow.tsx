@@ -1,4 +1,5 @@
 import { Box, Text } from "ink";
+import { useTheme } from "./ThemeContext.js";
 
 interface Props {
   label: string;
@@ -7,14 +8,15 @@ interface Props {
 }
 
 export function StatusRow({ label, timing, dimLabel }: Props) {
+  const theme = useTheme();
   return (
     <Box gap={2}>
-      <Text color="#059669">{"✓"}</Text>
+      <Text color={theme.success}>{"✓"}</Text>
       <Box flexGrow={1}>
-        <Text color={dimLabel ? "#6B7280" : undefined}>{label}</Text>
+        <Text color={dimLabel ? theme.fgMuted : theme.fg}>{label}</Text>
       </Box>
       {timing !== undefined && (
-        <Text color="#9CA3AF">{timing.toFixed(1)}{"s"}</Text>
+        <Text color={theme.fgMuted}>{timing.toFixed(1)}{"s"}</Text>
       )}
     </Box>
   );
