@@ -27,24 +27,49 @@ export interface RepromptResult {
 }
 
 function resolveError(err: unknown): AppError {
-  if (!(err instanceof Error)) return { message: "An unexpected error occurred" };
+  if (!(err instanceof Error))
+    return { message: "An unexpected error occurred" };
   if (err.message.includes("ECONNREFUSED"))
-    return { message: "Cannot connect to server", hint: "Start the backend: pnpm dev" };
-  if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized"))
-    return { message: err.message.includes("expired") ? "Session expired" : "Not authenticated", hint: "Run: zyraa login" };
-  if (err.message.includes("403") || err.message.toLowerCase().includes("limit"))
-    return { message: "Build limit reached", hint: "Upgrade your plan at zyraa.dev" };
+    return {
+      message: "Cannot connect to server",
+      hint: "Start the backend: pnpm dev",
+    };
+  if (
+    err.message.includes("401") ||
+    err.message.toLowerCase().includes("unauthorized")
+  )
+    return {
+      message: err.message.includes("expired")
+        ? "Session expired"
+        : "Not authenticated",
+      hint: "Run: zyraa login",
+    };
+  if (
+    err.message.includes("403") ||
+    err.message.toLowerCase().includes("limit")
+  )
+    return {
+      message: "Build limit reached",
+      hint: "Upgrade your plan at zyraa.live",
+    };
   if (err.message.includes("429"))
     return { message: "Rate limit exceeded — try again shortly" };
   return { message: err.message };
 }
 
-export function useReprompt(prompt: string, generationId: string, framework: string) {
+export function useReprompt(
+  prompt: string,
+  generationId: string,
+  framework: string,
+) {
   const [stage, setStage] = useState<RepromptStage>("analyzing");
   const [changedFiles, setChangedFiles] = useState<string[]>([]);
   const [activeFile, setActiveFile] = useState("");
   const [actionWord, setActionWord] = useState(nextActionWord());
-  const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number } | null>(null);
+  const [usage, setUsage] = useState<{
+    inputTokens: number;
+    outputTokens: number;
+  } | null>(null);
   const [installWarning, setInstallWarning] = useState("");
   const [error, setError] = useState<AppError | null>(null);
   const [timings, setTimings] = useState<Timings>({});
@@ -70,7 +95,11 @@ export function useReprompt(prompt: string, generationId: string, framework: str
       try {
         // Pass 1: select relevant files via Haiku
         const { indexContent } = readProjectIndex(process.cwd());
-        const filePaths = await callRepromptSelect({ generationId, prompt, indexContent });
+        const filePaths = await callRepromptSelect({
+          generationId,
+          prompt,
+          indexContent,
+        });
         setSelectedCount(filePaths.length);
         recordTiming("detecting");
 
@@ -122,7 +151,9 @@ export function useReprompt(prompt: string, generationId: string, framework: str
             await installDependencies(process.cwd());
             recordTiming("installing");
           } catch {
-            setInstallWarning("Dependencies failed — run pnpm install manually");
+            setInstallWarning(
+              "Dependencies failed — run pnpm install manually",
+            );
             recordTiming("installing");
           }
         }

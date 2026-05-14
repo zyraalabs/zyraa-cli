@@ -8,7 +8,11 @@ import { parseGenerateResponse } from "../../lib/parser.js";
 import { writeFiles } from "../../lib/fileWriter.js";
 import { installDependencies } from "../../lib/projectSetup.js";
 import { nextActionWord } from "../../lib/actionWords.js";
-import { hasZyraaIndex, writeZyraaIndex, writeZyraaMeta } from "../../lib/fileReader.js";
+import {
+  hasZyraaIndex,
+  writeZyraaIndex,
+  writeZyraaMeta,
+} from "../../lib/fileReader.js";
 
 export type Stage =
   | "detecting"
@@ -47,11 +51,28 @@ function resolveError(err: unknown): AppError {
   if (!(err instanceof Error))
     return { message: "An unexpected error occurred" };
   if (err.message.includes("ECONNREFUSED"))
-    return { message: "Cannot connect to server", hint: "Start the backend: pnpm dev" };
-  if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized"))
-    return { message: err.message.includes("expired") ? "Session expired" : "Not authenticated", hint: "Run: zyraa login" };
-  if (err.message.includes("403") || err.message.toLowerCase().includes("limit"))
-    return { message: "Build limit reached", hint: "Upgrade your plan at zyraa.dev" };
+    return {
+      message: "Cannot connect to server",
+      hint: "Start the backend: pnpm dev",
+    };
+  if (
+    err.message.includes("401") ||
+    err.message.toLowerCase().includes("unauthorized")
+  )
+    return {
+      message: err.message.includes("expired")
+        ? "Session expired"
+        : "Not authenticated",
+      hint: "Run: zyraa login",
+    };
+  if (
+    err.message.includes("403") ||
+    err.message.toLowerCase().includes("limit")
+  )
+    return {
+      message: "Build limit reached",
+      hint: "Upgrade your plan at zyraa.live",
+    };
   if (err.message.includes("429"))
     return { message: "Rate limit exceeded — try again shortly" };
   return { message: err.message };
@@ -97,8 +118,14 @@ export function useGeneration(prompt: string) {
         setReasoning(detection.reasoning);
         recordTiming("detecting");
 
-        const projectAlreadyExists = existsSync(join(process.cwd(), "package.json"));
-        if (!projectAlreadyExists && detection.needsScaffold && detection.scaffoldCommand) {
+        const projectAlreadyExists = existsSync(
+          join(process.cwd(), "package.json"),
+        );
+        if (
+          !projectAlreadyExists &&
+          detection.needsScaffold &&
+          detection.scaffoldCommand
+        ) {
           setStage("scaffolding");
           stageStart.current = Date.now();
           try {
@@ -116,7 +143,11 @@ export function useGeneration(prompt: string) {
         let buf = "";
         let cur = "";
 
-        const { output, usage: u, generationId } = await streamGenerate(
+        const {
+          output,
+          usage: u,
+          generationId,
+        } = await streamGenerate(
           {
             prompt,
             framework: detection.framework,
@@ -150,7 +181,10 @@ export function useGeneration(prompt: string) {
         }
         // Guarantee .zyraa/index.md exists for reprompt routing — LLM may skip it
         if (!hasZyraaIndex(process.cwd())) {
-          writeZyraaIndex(process.cwd(), parsedFiles.map((f) => f.path));
+          writeZyraaIndex(
+            process.cwd(),
+            parsedFiles.map((f) => f.path),
+          );
         }
         recordTiming("generating");
 

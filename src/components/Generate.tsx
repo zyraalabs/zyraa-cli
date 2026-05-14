@@ -10,31 +10,43 @@ import { ErrorView } from "./generate/ErrorView.js";
 import { useGeneration, type GenerationResult } from "./generate/useGeneration.js";
 import { IS_MOCK } from "../lib/mock.js";
 
-export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result: GenerationResult) => void }) {
+interface Props {
+  prompt: string;
+  onDone?: (result: GenerationResult) => void;
+}
+
+export function Generate({ prompt, onDone }: Props) {
   const { exit } = useApp();
+
   const {
     stage, framework, reasoning, wasScaffolded,
     generatedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, generationId,
   } = useGeneration(prompt);
 
-  useInput(() => {
-    if (stage === "done" || stage === "error") {
-      const result: GenerationResult = {
-        prompt, framework, reasoning,
-        fileCount: generatedFiles.length,
-        timings, usage, installWarning,
-        error: error ?? null,
-        generationId,
-      };
-      if (onDone) onDone(result); else exit();
-    }
-  }, { isActive: stage === "done" || stage === "error" });
+  function buildResult(): GenerationResult {
+    return {
+      prompt, framework, reasoning,
+      fileCount: generatedFiles.length,
+      timings, usage, installWarning,
+      error: error ?? null,
+      generationId,
+    };
+  }
 
-  const pastDetecting = stage !== "detecting";
+  useInput(() => {
+    if (stage !== "done") return;
+    if (onDone) onDone(buildResult()); else exit();
+  }, { isActive: stage === "done" });
+
+  function handleErrorRetry() {
+    if (onDone) onDone(buildResult()); else exit();
+  }
+
+  const pastDetecting   = stage !== "detecting";
   const pastScaffolding = wasScaffolded && !["detecting", "scaffolding"].includes(stage);
-  const pastGenerating = generatedFiles.length > 0 && ["installing", "done"].includes(stage);
-  const pastInstalling = stage === "done";
+  const pastGenerating  = generatedFiles.length > 0 && ["installing", "done"].includes(stage);
+  const pastInstalling  = stage === "done";
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -47,32 +59,28 @@ export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result:
           <StatusRow
             label={`${framework}${reasoning ? `  ·  ${reasoning}` : ""}`}
             timing={timings.detecting}
+            dimLabel
           />
         )}
         {pastScaffolding && (
-          <StatusRow label="Project scaffolded" timing={timings.scaffolding} />
+          <StatusRow label="scaffolded" timing={timings.scaffolding} dimLabel />
         )}
         {pastGenerating && (
-          <StatusRow label={`${generatedFiles.length} files generated`} timing={timings.generating} />
+          <StatusRow label={`${generatedFiles.length} files generated`} timing={timings.generating} dimLabel />
         )}
         {pastInstalling && !installWarning && (
-          <StatusRow label="Dependencies installed" timing={timings.installing} />
+          <StatusRow label="dependencies installed" timing={timings.installing} dimLabel />
         )}
 
         {stage !== "done" && stage !== "error" && <Divider />}
 
-        {stage === "detecting" && <Spinner label="Detecting framework..." />}
+        {stage === "detecting"   && <Spinner label="Detecting framework..." />}
         {stage === "scaffolding" && <Spinner label="Scaffolding project..." />}
-        {stage === "generating" && (
-          <GeneratingView
-            activeFile={activeFile}
-            actionWord={actionWord}
-            generatedFiles={generatedFiles}
-          />
+        {stage === "generating"  && (
+          <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={generatedFiles} />
         )}
-        {stage === "installing" && <Spinner label="Installing dependencies..." />}
-
-        {stage === "done" && (
+        {stage === "installing"  && <Spinner label="Installing dependencies..." />}
+        {stage === "done"        && (
           <DoneView
             installWarning={installWarning}
             usage={usage}
@@ -81,8 +89,9 @@ export function Generate({ prompt, onDone }: { prompt: string; onDone?: (result:
             timings={timings}
           />
         )}
-
-        {stage === "error" && error && <ErrorView error={error} />}
+        {stage === "error" && error && (
+          <ErrorView error={error} onRetry={handleErrorRetry} />
+        )}
       </Box>
     </Box>
   );

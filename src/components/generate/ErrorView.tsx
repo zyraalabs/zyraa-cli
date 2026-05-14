@@ -1,33 +1,55 @@
-import { Box, Text } from "ink";
+import { useState } from "react";
+import { Box, Text, useInput, useApp } from "ink";
 import { Divider } from "../ui/Divider.js";
+import { InputBox } from "../ui/InputBox.js";
+import { useTheme } from "../ui/ThemeContext.js";
 import type { AppError } from "./useGeneration.js";
 
-export function ErrorView({ error }: { error: AppError }) {
+interface Props {
+  error: AppError;
+  onRetry: () => void;
+}
+
+export function ErrorView({ error, onRetry }: Props) {
+  const { exit } = useApp();
+  const theme     = useTheme();
+  const [input, setInput] = useState("");
+
+  useInput((char, key) => {
+    if (key.ctrl && char === "c") { exit(); return; }
+    if (key.return) { onRetry(); return; }
+    if (key.backspace || key.delete) { setInput((p) => p.slice(0, -1)); return; }
+    if (char && !key.ctrl && !key.meta) {
+      setInput((p) => p + char.replace(/[\r\n]/g, " "));
+    }
+  });
+
   return (
     <Box flexDirection="column" gap={1}>
       <Box gap={2}>
-        <Text color="#DC2626" bold>{"✗"}</Text>
-        <Text bold>{"Build failed"}</Text>
+        <Text color={theme.error} bold>{"✗"}</Text>
+        <Text color={theme.error} bold>{"Generation failed"}</Text>
       </Box>
+
+      {error.message && (
+        <Box paddingLeft={4}>
+          <Text color={theme.fgMuted}>{error.message}</Text>
+        </Box>
+      )}
+
+      {error.hint && (
+        <Box paddingLeft={4}>
+          <Text color={theme.fgMuted}>{error.hint}</Text>
+        </Box>
+      )}
 
       <Divider />
 
-      <Box flexDirection="column" gap={1} paddingLeft={1}>
-        <Text color="#DC2626">{error.message}</Text>
-        {error.hint && (
-          <Box gap={1}>
-            <Text color="#6B7280">{"hint"}</Text>
-            <Text color="#6B7280">{"·"}</Text>
-            <Text>{error.hint}</Text>
-          </Box>
-        )}
-      </Box>
+      <InputBox value={input} focused />
 
-      <Divider />
-
-      <Box paddingLeft={1}>
-        <Text color="#6B7280" dimColor>{"press any key to continue  ·  ctrl+c to exit"}</Text>
-      </Box>
+      <Text color={theme.fgSubtle}>
+        {"describe your next change  ·  enter to retry  ·  ctrl+c to exit"}
+      </Text>
     </Box>
   );
 }

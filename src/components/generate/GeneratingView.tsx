@@ -1,6 +1,44 @@
+import { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "../ui/Spinner.js";
-import { FileStep } from "../ui/FileStep.js";
+import { useTheme } from "../ui/ThemeContext.js";
+
+const MAX_VISIBLE_FILES = 6;
+
+function ProgressBar() {
+  const theme  = useTheme();
+  const [pct, setPct] = useState(0);
+  const barWidth = 36;
+
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      setPct(Math.min(88, 100 * (1 - Math.exp(-elapsed / 1.8))));
+    }, 80);
+    return () => clearInterval(id);
+  }, []);
+
+  const filled = Math.round((pct / 100) * barWidth);
+  const empty  = barWidth - filled;
+
+  return (
+    <Box paddingLeft={2}>
+      <Text color={theme.brand}>{"─".repeat(filled)}</Text>
+      <Text color={theme.fgSubtle}>{"─".repeat(empty)}</Text>
+    </Box>
+  );
+}
+
+function CompletedFile({ path }: { path: string }) {
+  const theme = useTheme();
+  return (
+    <Box gap={1}>
+      <Text color={theme.success} bold>{"✓"}</Text>
+      <Text color={theme.fgSubtle}>{path}</Text>
+    </Box>
+  );
+}
 
 interface Props {
   activeFile: string;
@@ -9,24 +47,25 @@ interface Props {
 }
 
 export function GeneratingView({ activeFile, actionWord, generatedFiles }: Props) {
+  const theme   = useTheme();
+  const visible  = generatedFiles.slice(-MAX_VISIBLE_FILES);
+  const overflow = generatedFiles.length - MAX_VISIBLE_FILES;
+
   return (
     <Box flexDirection="column" gap={1}>
       <Spinner label={`${actionWord}...`} suffix={activeFile || undefined} />
+      <ProgressBar />
+
       {generatedFiles.length > 0 && (
-        <Box flexDirection="column" paddingLeft={1}>
-          {generatedFiles.slice(-6).map((f) => (
-            <FileStep key={f} path={f} />
+        <Box flexDirection="column" marginTop={1}>
+          {visible.map((f) => (
+            <CompletedFile key={f} path={f} />
           ))}
-          {generatedFiles.length > 6 && (
+          {overflow > 0 && (
             <Box paddingLeft={4}>
-              <Text color="#6B7280">{`+${generatedFiles.length - 6} more`}</Text>
+              <Text color={theme.fgSubtle}>{`… ${overflow} more files`}</Text>
             </Box>
           )}
-          <Box marginTop={1} paddingLeft={4} gap={1}>
-            <Text color="#6B7280">{generatedFiles.length} file{generatedFiles.length === 1 ? "" : "s"}</Text>
-            <Text color="#4B5563">{"·"}</Text>
-            <Text color="#4B5563">{"generating..."}</Text>
-          </Box>
         </Box>
       )}
     </Box>

@@ -17,30 +17,34 @@ interface Props {
 
 export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
   const { exit } = useApp();
+
   const {
     stage, changedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, selectedCount,
   } = useReprompt(prompt, generationId, framework);
 
-  useInput(() => {
-    if (stage === "done" || stage === "error") {
-      const result: RepromptResult = {
-        prompt,
-        framework,
-        filesChanged: changedFiles.length,
-        timings,
-        usage,
-        installWarning,
-        error: error ?? null,
-      };
-      if (onDone) onDone(result); else exit();
-    }
-  }, { isActive: stage === "done" || stage === "error" });
+  function buildResult(): RepromptResult {
+    return {
+      prompt, framework,
+      filesChanged: changedFiles.length,
+      timings, usage, installWarning,
+      error: error ?? null,
+    };
+  }
 
-  const pastAnalyzing = stage !== "analyzing";
-  const pastReading = !["analyzing", "reading"].includes(stage);
+  useInput(() => {
+    if (stage !== "done") return;
+    if (onDone) onDone(buildResult()); else exit();
+  }, { isActive: stage === "done" });
+
+  function handleErrorRetry() {
+    if (onDone) onDone(buildResult()); else exit();
+  }
+
+  const pastAnalyzing   = stage !== "analyzing";
+  const pastReading     = !["analyzing", "reading"].includes(stage);
   const pastReprompting = changedFiles.length > 0 && ["installing", "done"].includes(stage);
-  const pastInstalling = stage === "done";
+  const pastInstalling  = stage === "done";
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -51,32 +55,28 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
           <StatusRow
             label={`${selectedCount} file${selectedCount !== 1 ? "s" : ""} selected`}
             timing={timings.detecting}
+            dimLabel
           />
         )}
         {pastReading && (
-          <StatusRow label="Files loaded" timing={timings.scaffolding} />
+          <StatusRow label="files loaded" timing={timings.scaffolding} dimLabel />
         )}
         {pastReprompting && (
-          <StatusRow label={`${changedFiles.length} files updated`} timing={timings.generating} />
+          <StatusRow label={`${changedFiles.length} files updated`} timing={timings.generating} dimLabel />
         )}
         {pastInstalling && !installWarning && (
-          <StatusRow label="Dependencies installed" timing={timings.installing} />
+          <StatusRow label="dependencies installed" timing={timings.installing} dimLabel />
         )}
 
         {stage !== "done" && stage !== "error" && <Divider />}
 
-        {stage === "analyzing" && <Spinner label="Analyzing project..." />}
-        {stage === "reading" && <Spinner label="Loading files..." />}
+        {stage === "analyzing"   && <Spinner label="Analyzing project..." />}
+        {stage === "reading"     && <Spinner label="Loading files..." />}
         {stage === "reprompting" && (
-          <GeneratingView
-            activeFile={activeFile}
-            actionWord={actionWord}
-            generatedFiles={changedFiles}
-          />
+          <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={changedFiles} />
         )}
-        {stage === "installing" && <Spinner label="Installing dependencies..." />}
-
-        {stage === "done" && (
+        {stage === "installing"  && <Spinner label="Installing dependencies..." />}
+        {stage === "done"        && (
           <DoneView
             installWarning={installWarning}
             usage={usage}
@@ -86,8 +86,9 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
             mode="reprompt"
           />
         )}
-
-        {stage === "error" && error && <ErrorView error={error} />}
+        {stage === "error" && error && (
+          <ErrorView error={error} onRetry={handleErrorRetry} />
+        )}
       </Box>
     </Box>
   );
