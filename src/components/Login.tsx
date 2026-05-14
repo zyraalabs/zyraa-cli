@@ -3,7 +3,8 @@ import { Box, Text, useApp } from "ink";
 import { Header } from "./ui/Header.js";
 import { Badge } from "./ui/Badge.js";
 import { Spinner } from "./ui/Spinner.js";
-import { FileStep } from "./ui/FileStep.js";
+import { Divider } from "./ui/Divider.js";
+import { useTheme } from "./ui/ThemeContext.js";
 import { authApi } from "../api/endpoints/auth.js";
 import { saveToken } from "../lib/config.js";
 import { openBrowserSilent } from "../lib/browser.js";
@@ -13,8 +14,9 @@ type Stage = "init" | "pending" | "done" | "error";
 
 export function Login() {
   const { exit } = useApp();
-  const [stage, setStage] = useState<Stage>("init");
-  const [loginUrl, setLoginUrl] = useState("");
+  const theme     = useTheme();
+  const [stage, setStage]               = useState<Stage>("init");
+  const [loginUrl, setLoginUrl]         = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -55,29 +57,47 @@ export function Login() {
     <Box flexDirection="column" paddingY={1}>
       <Header prompt="Login to Zyraa" />
 
-      <Box flexDirection="column" paddingLeft={2} gap={1}>
-        {stage === "init" && <Spinner label="Initializing login..." />}
+      <Box flexDirection="column" paddingX={2} gap={1}>
+        {stage === "init" && (
+          <Spinner label="Initializing login..." />
+        )}
 
         {stage === "pending" && (
           <Box flexDirection="column" gap={1}>
+            <Box gap={1}>
+              <Text color={theme.success} bold>{"✓"}</Text>
+              <Text color={theme.fgMuted}>{"Browser opened for authentication"}</Text>
+            </Box>
             <Spinner label="Waiting for browser approval..." />
             {loginUrl && (
-              <Box flexDirection="column">
-                <Text color="#6B7280">If browser did not open, visit:</Text>
-                <FileStep path={loginUrl} />
+              <Box flexDirection="column" gap={0} marginTop={1}>
+                <Text color={theme.fgMuted}>{"If browser did not open, visit:"}</Text>
+                <Box gap={1} paddingLeft={2}>
+                  <Text color={theme.fgSubtle}>{"›"}</Text>
+                  <Text color={theme.brandLight}>{loginUrl}</Text>
+                </Box>
               </Box>
             )}
+            <Divider />
+            <Text color={theme.fgSubtle}>
+              {"waiting for browser approval  ·  ctrl+c to cancel"}
+            </Text>
           </Box>
         )}
 
         {stage === "done" && (
           <Box flexDirection="column" gap={1}>
             <Badge type="success" label="Authenticated successfully" />
-            <FileStep path="~/.zyra/config" />
+            <Box gap={1} paddingLeft={2}>
+              <Text color={theme.fgSubtle}>{"→"}</Text>
+              <Text color={theme.fgMuted}>{"~/.zyra/config"}</Text>
+            </Box>
           </Box>
         )}
 
-        {stage === "error" && <Badge type="error" label={errorMessage} />}
+        {stage === "error" && (
+          <Badge type="error" label={errorMessage} />
+        )}
       </Box>
     </Box>
   );
