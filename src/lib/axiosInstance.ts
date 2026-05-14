@@ -6,7 +6,7 @@ import { join } from "path";
 const CONFIG_FILE = join(homedir(), ".zyra", "config");
 
 const axiosInstance = axios.create({
-  baseURL: process.env.CLI_BACKEND_URL || "http://localhost:4000",
+  baseURL: process.env.CLI_BACKEND_URL || "https://cli-api.zyraa.live",
   timeout: 300000,
 });
 
