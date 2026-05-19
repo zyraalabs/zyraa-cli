@@ -7,6 +7,10 @@ import { streamGenerate } from "../../api/endpoints/generate.js";
 import { parseGenerateResponse } from "../../lib/parser.js";
 import { writeFiles } from "../../lib/fileWriter.js";
 import { installDependencies } from "../../lib/projectSetup.js";
+import { runBuild, type BuildError } from "../../lib/buildValidator.js";
+import { callRepromptSelect } from "../../api/endpoints/repromptSelect.js";
+import { streamReprompt } from "../../api/endpoints/reprompt.js";
+import { readProjectIndex, readFiles } from "../../lib/fileReader.js";
 import { nextActionWord } from "../../lib/actionWords.js";
 import {
   hasZyraaIndex,
@@ -19,8 +23,12 @@ export type Stage =
   | "scaffolding"
   | "generating"
   | "installing"
+  | "validating"
+  | "fixing"
   | "done"
   | "error";
+
+const MAX_FIX_ATTEMPTS = 3;
 
 export interface AppError {
   message: string;
@@ -67,14 +75,23 @@ function resolveError(err: unknown): AppError {
     };
   if (
     err.message.includes("403") ||
-    err.message.toLowerCase().includes("limit")
+    err.message.toLowerCase().includes("build limit") ||
+    err.message.toLowerCase().includes("limit reached")
   )
     return {
       message: "Build limit reached",
       hint: "Upgrade your plan at zyraa.live",
     };
-  if (err.message.includes("429"))
-    return { message: "Rate limit exceeded — try again shortly" };
+  if (
+    err.message.includes("429") ||
+    err.message.toLowerCase().includes("rate limit")
+  )
+    return { message: "Too many requests — wait a moment and try again" };
+  if (
+    err.message.toLowerCase().includes("blocked") ||
+    err.message.toLowerCase().includes("security")
+  )
+    return { message: err.message };
   return { message: err.message };
 }
 
@@ -91,6 +108,9 @@ export function useGeneration(prompt: string) {
     outputTokens: number;
   } | null>(null);
   const [installWarning, setInstallWarning] = useState("");
+  const [fixAttempt, setFixAttempt] = useState(0);
+  const [fixingErrors, setFixingErrors] = useState<BuildError[]>([]);
+  const [fixedErrors, setFixedErrors] = useState<BuildError[]>([]);
   const [error, setError] = useState<AppError | null>(null);
   const [timings, setTimings] = useState<Timings>({});
   const [generationId, setGenerationId] = useState("");
@@ -198,6 +218,57 @@ export function useGeneration(prompt: string) {
           recordTiming("installing");
         }
 
+        let fixAttempt = 0;
+        const currentGenerationId = generationId;
+        const currentFramework = detection.framework;
+
+        while (fixAttempt < MAX_FIX_ATTEMPTS) {
+          setStage("validating");
+          const build = await runBuild(process.cwd());
+          if (build.clean) break;
+
+          fixAttempt++;
+          if (fixAttempt >= MAX_FIX_ATTEMPTS) {
+            setInstallWarning(
+              "Build errors remain after auto-fix — run pnpm build to see details",
+            );
+            break;
+          }
+
+          setStage("fixing");
+          setFixAttempt(fixAttempt);
+          setFixingErrors(build.parsed);
+
+          const { indexContent } = readProjectIndex(process.cwd());
+          const errorPrompt = `Fix these build errors:\n\n${build.errors}`;
+          const filePaths = await callRepromptSelect({
+            generationId: currentGenerationId,
+            prompt: errorPrompt,
+            indexContent,
+          });
+
+          const files = readFiles(filePaths, process.cwd());
+          const { output } = await streamReprompt(
+            {
+              generationId: currentGenerationId,
+              prompt: errorPrompt,
+              files,
+              framework: currentFramework,
+            },
+            () => {},
+          );
+
+          const fixed = parseGenerateResponse(output).files;
+          writeFiles(fixed, process.cwd());
+
+          setFixedErrors((prev) => [...prev, ...build.parsed]);
+          setFixingErrors([]);
+
+          const needsInstall = fixed.some((f) => f.path === "package.json");
+          if (needsInstall)
+            await installDependencies(process.cwd()).catch(() => {});
+        }
+
         const total = (Date.now() - sessionStart.current) / 1000;
         setTimings((prev) => ({ ...prev, total }));
         setStage("done");
@@ -223,5 +294,8 @@ export function useGeneration(prompt: string) {
     error,
     timings,
     generationId,
+    fixAttempt,
+    fixingErrors,
+    fixedErrors,
   };
 }

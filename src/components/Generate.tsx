@@ -5,9 +5,10 @@ import { Spinner } from "./ui/Spinner.js";
 import { StatusRow } from "./ui/StatusRow.js";
 import { Divider } from "./ui/Divider.js";
 import { GeneratingView } from "./generate/GeneratingView.js";
+import { BuildValidationView } from "./generate/BuildValidationView.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
-import { useGeneration, type GenerationResult } from "./generate/useGeneration.js";
+import { useGeneration, type GenerationResult, type Stage } from "./generate/useGeneration.js";
 import { IS_MOCK } from "../lib/mock.js";
 
 interface Props {
@@ -22,6 +23,7 @@ export function Generate({ prompt, onDone }: Props) {
     stage, framework, reasoning, wasScaffolded,
     generatedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, generationId,
+    fixAttempt, fixingErrors, fixedErrors,
   } = useGeneration(prompt);
 
   function buildResult(): GenerationResult {
@@ -43,10 +45,15 @@ export function Generate({ prompt, onDone }: Props) {
     if (onDone) onDone(buildResult()); else exit();
   }
 
+  const activeStages: Stage[] = ["detecting", "scaffolding", "generating", "installing", "validating", "fixing", "done", "error"];
+  const stageIndex = (s: Stage) => activeStages.indexOf(s);
+  const past = (s: Stage) => stageIndex(stage) > stageIndex(s);
+
   const pastDetecting   = stage !== "detecting";
-  const pastScaffolding = wasScaffolded && !["detecting", "scaffolding"].includes(stage);
-  const pastGenerating  = generatedFiles.length > 0 && ["installing", "done"].includes(stage);
-  const pastInstalling  = stage === "done";
+  const pastScaffolding = wasScaffolded && past("scaffolding");
+  const pastGenerating  = generatedFiles.length > 0 && past("generating");
+  const pastInstalling  = past("installing");
+  const pastValidating  = past("validating") || stage === "done";
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -71,6 +78,9 @@ export function Generate({ prompt, onDone }: Props) {
         {pastInstalling && !installWarning && (
           <StatusRow label="dependencies installed" timing={timings.installing} dimLabel />
         )}
+        {pastValidating && fixAttempt > 0 && (
+          <StatusRow label={`auto-fixed ${fixAttempt} build error${fixAttempt > 1 ? "s" : ""}`} dimLabel />
+        )}
 
         {stage !== "done" && stage !== "error" && <Divider />}
 
@@ -80,7 +90,15 @@ export function Generate({ prompt, onDone }: Props) {
           <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={generatedFiles} />
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
-        {stage === "done"        && (
+        {(stage === "validating" || stage === "fixing") && (
+          <BuildValidationView
+            stage={stage}
+            fixAttempt={fixAttempt}
+            errors={fixingErrors}
+            fixedErrors={fixedErrors}
+          />
+        )}
+        {stage === "done" && (
           <DoneView
             installWarning={installWarning}
             usage={usage}
