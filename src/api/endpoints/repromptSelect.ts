@@ -12,7 +12,7 @@ export async function callRepromptSelect(params: RepromptSelectRequest): Promise
     .catch((err) => {
       const status = err?.response?.status;
       const message = err?.response?.data?.error ?? err.message;
-      if (status === 401 || status === 403) throw new Error(message);
+      if (status) throw new Error(message);
       throw err;
     });
   return response.data.data.filePaths;

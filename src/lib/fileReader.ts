@@ -87,6 +87,16 @@ export function writeZyraaIndex(cwd: string, filePaths: string[]): void {
   writeFileSync(join(dir, "index.md"), content);
 }
 
+export function refreshZyraaIndex(cwd: string): void {
+  const files: string[] = [];
+  const srcDir = join(cwd, "src");
+  if (existsSync(srcDir)) files.push(...collectFiles(srcDir, cwd));
+  for (const name of ["package.json", "tsconfig.json", "next.config.ts", "next.config.js"]) {
+    if (existsSync(join(cwd, name))) files.push(name);
+  }
+  if (files.length > 0) writeZyraaIndex(cwd, files);
+}
+
 export function writeZyraaMeta(
   cwd: string,
   generationId: string,

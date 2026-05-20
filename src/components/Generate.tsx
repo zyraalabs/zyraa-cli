@@ -6,6 +6,7 @@ import { StatusRow } from "./ui/StatusRow.js";
 import { Divider } from "./ui/Divider.js";
 import { GeneratingView } from "./generate/GeneratingView.js";
 import { BuildValidationView } from "./generate/BuildValidationView.js";
+import { RemainingErrorsView } from "./generate/RemainingErrorsView.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
 import { useGeneration, type GenerationResult, type Stage } from "./generate/useGeneration.js";
@@ -23,7 +24,7 @@ export function Generate({ prompt, onDone }: Props) {
     stage, framework, reasoning, wasScaffolded,
     generatedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, generationId,
-    fixAttempt, fixingErrors, fixedErrors,
+    fixAttempt, fixingErrors, fixedErrors, remainingErrors,
   } = useGeneration(prompt);
 
   function buildResult(): GenerationResult {
@@ -80,6 +81,9 @@ export function Generate({ prompt, onDone }: Props) {
         )}
         {pastValidating && fixAttempt > 0 && (
           <StatusRow label={`auto-fixed ${fixAttempt} build error${fixAttempt > 1 ? "s" : ""}`} dimLabel />
+        )}
+        {(stage === "done") && remainingErrors.length > 0 && (
+          <RemainingErrorsView errors={remainingErrors} />
         )}
 
         {stage !== "done" && stage !== "error" && <Divider />}

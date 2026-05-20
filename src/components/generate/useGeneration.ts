@@ -10,13 +10,15 @@ import { installDependencies } from "../../lib/projectSetup.js";
 import { runBuild, type BuildError } from "../../lib/buildValidator.js";
 import { callRepromptSelect } from "../../api/endpoints/repromptSelect.js";
 import { streamReprompt } from "../../api/endpoints/reprompt.js";
-import { readProjectIndex, readFiles } from "../../lib/fileReader.js";
-import { nextActionWord } from "../../lib/actionWords.js";
 import {
+  readProjectIndex,
+  readFiles,
   hasZyraaIndex,
   writeZyraaIndex,
   writeZyraaMeta,
+  refreshZyraaIndex,
 } from "../../lib/fileReader.js";
+import { nextActionWord } from "../../lib/actionWords.js";
 
 export type Stage =
   | "detecting"
@@ -111,6 +113,7 @@ export function useGeneration(prompt: string) {
   const [fixAttempt, setFixAttempt] = useState(0);
   const [fixingErrors, setFixingErrors] = useState<BuildError[]>([]);
   const [fixedErrors, setFixedErrors] = useState<BuildError[]>([]);
+  const [remainingErrors, setRemainingErrors] = useState<BuildError[]>([]);
   const [error, setError] = useState<AppError | null>(null);
   const [timings, setTimings] = useState<Timings>({});
   const [generationId, setGenerationId] = useState("");
@@ -228,13 +231,6 @@ export function useGeneration(prompt: string) {
           if (build.clean) break;
 
           fixAttempt++;
-          if (fixAttempt >= MAX_FIX_ATTEMPTS) {
-            setInstallWarning(
-              "Build errors remain after auto-fix — run pnpm build to see details",
-            );
-            break;
-          }
-
           setStage("fixing");
           setFixAttempt(fixAttempt);
           setFixingErrors(build.parsed);
@@ -248,6 +244,11 @@ export function useGeneration(prompt: string) {
           });
 
           const files = readFiles(filePaths, process.cwd());
+          if (!files.length) {
+            setFixingErrors([]);
+            break;
+          }
+
           const { output } = await streamReprompt(
             {
               generationId: currentGenerationId,
@@ -260,6 +261,7 @@ export function useGeneration(prompt: string) {
 
           const fixed = parseGenerateResponse(output).files;
           writeFiles(fixed, process.cwd());
+          refreshZyraaIndex(process.cwd());
 
           setFixedErrors((prev) => [...prev, ...build.parsed]);
           setFixingErrors([]);
@@ -267,6 +269,12 @@ export function useGeneration(prompt: string) {
           const needsInstall = fixed.some((f) => f.path === "package.json");
           if (needsInstall)
             await installDependencies(process.cwd()).catch(() => {});
+        }
+
+        if (fixAttempt >= MAX_FIX_ATTEMPTS) {
+          setStage("validating");
+          const finalBuild = await runBuild(process.cwd());
+          if (!finalBuild.clean) setRemainingErrors(finalBuild.parsed);
         }
 
         const total = (Date.now() - sessionStart.current) / 1000;
@@ -297,5 +305,6 @@ export function useGeneration(prompt: string) {
     fixAttempt,
     fixingErrors,
     fixedErrors,
+    remainingErrors,
   };
 }

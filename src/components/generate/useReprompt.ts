@@ -1,18 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-import { readProjectIndex, readFiles } from "../../lib/fileReader.js";
+import { readProjectIndex, readFiles, refreshZyraaIndex } from "../../lib/fileReader.js";
 import { callRepromptSelect } from "../../api/endpoints/repromptSelect.js";
 import { streamReprompt } from "../../api/endpoints/reprompt.js";
 import { parseGenerateResponse } from "../../lib/parser.js";
 import { writeFiles } from "../../lib/fileWriter.js";
 import { installDependencies } from "../../lib/projectSetup.js";
+import { runBuild, type BuildError } from "../../lib/buildValidator.js";
 import { nextActionWord } from "../../lib/actionWords.js";
 import type { AppError, Timings } from "./useGeneration.js";
+
+const MAX_FIX_ATTEMPTS = 3;
 
 export type RepromptStage =
   | "analyzing"
   | "reading"
   | "reprompting"
   | "installing"
+  | "validating"
+  | "fixing"
   | "done"
   | "error";
 
@@ -71,6 +76,10 @@ export function useReprompt(
     outputTokens: number;
   } | null>(null);
   const [installWarning, setInstallWarning] = useState("");
+  const [fixAttempt, setFixAttempt] = useState(0);
+  const [fixingErrors, setFixingErrors] = useState<BuildError[]>([]);
+  const [fixedErrors, setFixedErrors] = useState<BuildError[]>([]);
+  const [remainingErrors, setRemainingErrors] = useState<BuildError[]>([]);
   const [error, setError] = useState<AppError | null>(null);
   const [timings, setTimings] = useState<Timings>({});
   const [selectedCount, setSelectedCount] = useState(0);
@@ -158,6 +167,54 @@ export function useReprompt(
           }
         }
 
+        let fixAttemptCount = 0;
+
+        while (fixAttemptCount < MAX_FIX_ATTEMPTS) {
+          setStage("validating");
+          const build = await runBuild(process.cwd());
+          if (build.clean) break;
+
+          fixAttemptCount++;
+          setStage("fixing");
+          setFixAttempt(fixAttemptCount);
+          setFixingErrors(build.parsed);
+
+          const { indexContent } = readProjectIndex(process.cwd());
+          const errorPrompt = `Fix these build errors:\n\n${build.errors}`;
+          const filePaths = await callRepromptSelect({
+            generationId,
+            prompt: errorPrompt,
+            indexContent,
+          });
+
+          const fixFiles = readFiles(filePaths, process.cwd());
+          if (!fixFiles.length) {
+            setFixingErrors([]);
+            break;
+          }
+
+          const { output: fixOutput } = await streamReprompt(
+            { generationId, prompt: errorPrompt, files: fixFiles, framework },
+            () => {},
+          );
+
+          const fixed = parseGenerateResponse(fixOutput).files;
+          writeFiles(fixed, process.cwd());
+          refreshZyraaIndex(process.cwd());
+
+          setFixedErrors((prev) => [...prev, ...build.parsed]);
+          setFixingErrors([]);
+
+          const needsInstall = fixed.some((f) => f.path === "package.json");
+          if (needsInstall) await installDependencies(process.cwd()).catch(() => {});
+        }
+
+        if (fixAttemptCount >= MAX_FIX_ATTEMPTS) {
+          setStage("validating");
+          const finalBuild = await runBuild(process.cwd());
+          if (!finalBuild.clean) setRemainingErrors(finalBuild.parsed);
+        }
+
         const total = (Date.now() - sessionStart.current) / 1000;
         setTimings((prev) => ({ ...prev, total }));
         setStage("done");
@@ -177,6 +234,10 @@ export function useReprompt(
     actionWord,
     usage,
     installWarning,
+    fixAttempt,
+    fixingErrors,
+    fixedErrors,
+    remainingErrors,
     error,
     timings,
     selectedCount,

@@ -4,6 +4,8 @@ import { Spinner } from "./ui/Spinner.js";
 import { StatusRow } from "./ui/StatusRow.js";
 import { Divider } from "./ui/Divider.js";
 import { GeneratingView } from "./generate/GeneratingView.js";
+import { BuildValidationView } from "./generate/BuildValidationView.js";
+import { RemainingErrorsView } from "./generate/RemainingErrorsView.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
 import { useReprompt, type RepromptResult } from "./generate/useReprompt.js";
@@ -21,6 +23,7 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
   const {
     stage, changedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, selectedCount,
+    fixAttempt, fixingErrors, fixedErrors, remainingErrors,
   } = useReprompt(prompt, generationId, framework);
 
   function buildResult(): RepromptResult {
@@ -41,10 +44,12 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
     if (onDone) onDone(buildResult()); else exit();
   }
 
+  const doneStages = ["validating", "fixing", "done"];
   const pastAnalyzing   = stage !== "analyzing";
   const pastReading     = !["analyzing", "reading"].includes(stage);
-  const pastReprompting = changedFiles.length > 0 && ["installing", "done"].includes(stage);
-  const pastInstalling  = stage === "done";
+  const pastReprompting = changedFiles.length > 0 && ["installing", ...doneStages].includes(stage);
+  const pastInstalling  = doneStages.includes(stage);
+  const pastValidating  = stage === "done";
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -67,6 +72,12 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
         {pastInstalling && !installWarning && (
           <StatusRow label="dependencies installed" timing={timings.installing} dimLabel />
         )}
+        {pastValidating && fixAttempt > 0 && (
+          <StatusRow label={`auto-fixed ${fixAttempt} build error${fixAttempt > 1 ? "s" : ""}`} dimLabel />
+        )}
+        {stage === "done" && remainingErrors.length > 0 && (
+          <RemainingErrorsView errors={remainingErrors} />
+        )}
 
         {stage !== "done" && stage !== "error" && <Divider />}
 
@@ -76,7 +87,15 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
           <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={changedFiles} />
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
-        {stage === "done"        && (
+        {(stage === "validating" || stage === "fixing") && (
+          <BuildValidationView
+            stage={stage}
+            fixAttempt={fixAttempt}
+            errors={fixingErrors}
+            fixedErrors={fixedErrors}
+          />
+        )}
+        {stage === "done" && (
           <DoneView
             installWarning={installWarning}
             usage={usage}
