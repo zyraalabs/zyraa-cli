@@ -98,6 +98,6 @@ export async function streamMockOutput(onChunk: (text: string) => void): Promise
   return {
     output: MOCK_OUTPUT,
     usage: { inputTokens: 1024, outputTokens: 4096 },
-    generationId: "mock-generation-id",
+    generationId: 12345,
   };
 }
