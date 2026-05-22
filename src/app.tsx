@@ -24,7 +24,7 @@ export function startApp(args: string[]): void {
   const prompt = filteredArgs.join(" ").trim();
 
   if (!prompt) {
-    render(<ThemeProvider><App /></ThemeProvider>);
+    render(<ThemeProvider><App deploy={deploy} /></ThemeProvider>);
     return;
   }
 

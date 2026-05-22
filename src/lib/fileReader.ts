@@ -69,11 +69,12 @@ export function hasZyraaIndex(cwd: string): boolean {
 
 export function readZyraaMeta(
   cwd: string,
-): { generationId: string; framework: string } | null {
+): { generationId: string; framework: string; netlifyId: string } | null {
   const metaPath = join(cwd, ".zyraa", "meta.json");
   if (!existsSync(metaPath)) return null;
   try {
-    return JSON.parse(readFileSync(metaPath, "utf-8"));
+    const parsed = JSON.parse(readFileSync(metaPath, "utf-8"));
+    return { netlifyId: "", ...parsed };
   } catch {
     return null;
   }
@@ -101,11 +102,12 @@ export function writeZyraaMeta(
   cwd: string,
   generationId: string,
   framework: string,
+  netlifyId?: string,
 ): void {
   const dir = join(cwd, ".zyraa");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, "meta.json"),
-    JSON.stringify({ generationId, framework }, null, 2),
+    JSON.stringify({ generationId, framework, netlifyId: netlifyId ?? "" }, null, 2),
   );
 }

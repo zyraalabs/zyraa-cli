@@ -26,7 +26,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
     generatedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, generationId,
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
-    deployUrl, deployError,
+    deployUrl, deployError, netlifyId,
   } = useGeneration(prompt, deploy);
 
   function buildResult(): GenerationResult {
@@ -38,6 +38,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
       generationId,
       deployUrl,
       deployError,
+      netlifyId,
     };
   }
 

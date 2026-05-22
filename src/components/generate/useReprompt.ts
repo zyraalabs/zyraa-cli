@@ -7,6 +7,8 @@ import { writeFiles } from "../../lib/fileWriter.js";
 import { installDependencies } from "../../lib/projectSetup.js";
 import { runBuild, type BuildError } from "../../lib/buildValidator.js";
 import { nextActionWord } from "../../lib/actionWords.js";
+import { buildStaticExport, zipOutDir } from "../../lib/deployer.js";
+import { deployProject } from "../../api/endpoints/deploy.js";
 import type { AppError, Timings } from "./useGeneration.js";
 
 const MAX_FIX_ATTEMPTS = 3;
@@ -18,6 +20,7 @@ export type RepromptStage =
   | "installing"
   | "validating"
   | "fixing"
+  | "deploying"
   | "done"
   | "error";
 
@@ -29,6 +32,8 @@ export interface RepromptResult {
   usage: { inputTokens: number; outputTokens: number } | null;
   installWarning: string;
   error: AppError | null;
+  deployUrl: string;
+  deployError: string;
 }
 
 function resolveError(err: unknown): AppError {
@@ -66,6 +71,8 @@ export function useReprompt(
   prompt: string,
   generationId: string,
   framework: string,
+  deploy = false,
+  netlifyId = "",
 ) {
   const [stage, setStage] = useState<RepromptStage>("analyzing");
   const [changedFiles, setChangedFiles] = useState<string[]>([]);
@@ -83,6 +90,8 @@ export function useReprompt(
   const [error, setError] = useState<AppError | null>(null);
   const [timings, setTimings] = useState<Timings>({});
   const [selectedCount, setSelectedCount] = useState(0);
+  const [deployUrl, setDeployUrl] = useState("");
+  const [deployError, setDeployError] = useState("");
 
   const stageStart = useRef(Date.now());
   const sessionStart = useRef(Date.now());
@@ -217,6 +226,21 @@ export function useReprompt(
 
         const total = (Date.now() - sessionStart.current) / 1000;
         setTimings((prev) => ({ ...prev, total }));
+
+        if (deploy) {
+          setStage("deploying");
+          stageStart.current = Date.now();
+          try {
+            await buildStaticExport(process.cwd(), true);
+            const zip = zipOutDir(process.cwd());
+            const { url } = await deployProject(generationId, zip, netlifyId || undefined);
+            setDeployUrl(url);
+            recordTiming("deploying");
+          } catch (err) {
+            setDeployError(err instanceof Error ? err.message : "Deployment failed");
+          }
+        }
+
         setStage("done");
       } catch (err) {
         setError(resolveError(err));
@@ -241,5 +265,7 @@ export function useReprompt(
     error,
     timings,
     selectedCount,
+    deployUrl,
+    deployError,
   };
 }

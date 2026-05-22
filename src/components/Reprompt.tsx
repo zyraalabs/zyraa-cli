@@ -14,17 +14,20 @@ interface Props {
   prompt: string;
   generationId: string;
   framework: string;
+  deploy?: boolean;
+  netlifyId?: string;
   onDone?: (result: RepromptResult) => void;
 }
 
-export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
+export function Reprompt({ prompt, generationId, framework, deploy = false, netlifyId = "", onDone }: Props) {
   const { exit } = useApp();
 
   const {
     stage, changedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, selectedCount,
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
-  } = useReprompt(prompt, generationId, framework);
+    deployUrl, deployError,
+  } = useReprompt(prompt, generationId, framework, deploy, netlifyId);
 
   function buildResult(): RepromptResult {
     return {
@@ -32,6 +35,8 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
       filesChanged: changedFiles.length,
       timings, usage, installWarning,
       error: error ?? null,
+      deployUrl,
+      deployError,
     };
   }
 
@@ -87,6 +92,7 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
           <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={changedFiles} />
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
+        {stage === "deploying"   && <Spinner label="Redeploying to Netlify..." />}
         {(stage === "validating" || stage === "fixing") && (
           <BuildValidationView
             stage={stage}
@@ -103,6 +109,8 @@ export function Reprompt({ prompt, generationId, framework, onDone }: Props) {
             fileCount={changedFiles.length}
             timings={timings}
             mode="reprompt"
+            deployUrl={deployUrl}
+            deployError={deployError}
           />
         )}
         {stage === "error" && error && (

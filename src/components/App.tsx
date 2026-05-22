@@ -14,6 +14,10 @@ import type { RepromptResult } from "./generate/useReprompt.js";
 
 type AppState = "idle" | "generating" | "reprompting" | "confirm-revert";
 
+interface AppProps {
+  deploy?: boolean;
+}
+
 interface SessionEntry {
   prompt: string;
   framework: string;
@@ -26,7 +30,7 @@ const THEME_ICON: Record<"dark" | "light", string> = {
   light: "○",
 };
 
-export function App() {
+export function App({ deploy = false }: AppProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const theme = useTheme();
@@ -44,6 +48,10 @@ export function App() {
   const [activeFramework, setActiveFramework] = useState(() => {
     const meta = readZyraaMeta(process.cwd());
     return meta?.framework ?? "nextjs";
+  });
+  const [activeNetlifyId, setActiveNetlifyId] = useState(() => {
+    const meta = readZyraaMeta(process.cwd());
+    return meta?.netlifyId ?? "";
   });
 
   const termWidth    = stdout?.columns ?? 80;
@@ -95,6 +103,7 @@ export function App() {
 
   function handleGenerateDone(result: GenerationResult) {
     if (result.generationId) setActiveGenerationId(result.generationId);
+    if (result.netlifyId) setActiveNetlifyId(result.netlifyId);
     setActiveFramework(result.framework);
     gitCommit(result.prompt, process.cwd());
     setSessions((prev) => [
@@ -158,7 +167,7 @@ export function App() {
     return (
       <Box flexDirection="column" paddingY={1}>
         {sessionHistory}
-        <Generate prompt={prompt} onDone={handleGenerateDone} />
+        <Generate prompt={prompt} deploy={deploy} onDone={handleGenerateDone} />
       </Box>
     );
   }
@@ -171,6 +180,8 @@ export function App() {
           prompt={prompt}
           generationId={activeGenerationId}
           framework={activeFramework}
+          deploy={deploy}
+          netlifyId={activeNetlifyId}
           onDone={handleRepromptDone}
         />
       </Box>

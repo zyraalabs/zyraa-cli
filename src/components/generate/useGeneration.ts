@@ -61,6 +61,7 @@ export interface GenerationResult {
   generationId: string;
   deployUrl: string;
   deployError: string;
+  netlifyId: string;
 }
 
 function resolveError(err: unknown): AppError {
@@ -125,6 +126,7 @@ export function useGeneration(prompt: string, deploy = false) {
   const [generationId, setGenerationId] = useState("");
   const [deployUrl, setDeployUrl] = useState("");
   const [deployError, setDeployError] = useState("");
+  const [netlifyId, setNetlifyId] = useState("");
 
   const stageStart = useRef(Date.now());
   const sessionStart = useRef(Date.now());
@@ -294,13 +296,13 @@ export function useGeneration(prompt: string, deploy = false) {
           try {
             await buildStaticExport(process.cwd());
             const zip = zipOutDir(process.cwd());
-            const { url } = await deployProject(generationId, zip);
+            const { url, netlifyId: nid } = await deployProject(generationId, zip);
             setDeployUrl(url);
+            setNetlifyId(nid);
+            writeZyraaMeta(process.cwd(), generationId, currentFramework, nid);
             recordTiming("deploying");
           } catch (err) {
-            setDeployError(
-              err instanceof Error ? err.message : "Deployment failed",
-            );
+            setDeployError(err instanceof Error ? err.message : "Deployment failed");
           }
         }
 
@@ -333,5 +335,6 @@ export function useGeneration(prompt: string, deploy = false) {
     remainingErrors,
     deployUrl,
     deployError,
+    netlifyId,
   };
 }

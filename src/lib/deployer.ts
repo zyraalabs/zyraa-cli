@@ -19,23 +19,22 @@ function patchNextConfig(content: string): string {
   );
 }
 
-export async function buildStaticExport(cwd: string): Promise<void> {
-  if (existsSync(join(cwd, "out"))) return;
+export async function buildStaticExport(cwd: string, force = false): Promise<void> {
+  const outDir = join(cwd, "out");
+
+  if (force && existsSync(outDir)) rmSync(outDir, { recursive: true, force: true });
+  if (!force && existsSync(outDir)) return;
 
   const configPath = findNextConfig(cwd);
   const original = configPath ? readFileSync(configPath, "utf8") : null;
 
-  if (configPath && original) {
-    writeFileSync(configPath, patchNextConfig(original));
-  }
+  if (configPath && original) writeFileSync(configPath, patchNextConfig(original));
 
   try {
     execSync("pnpm build", { cwd, stdio: "pipe" });
   } catch (err) {
     const msg = (err as { stderr?: Buffer }).stderr?.toString() ?? "";
-    const hint = msg.includes("API Routes")
-      ? " Apps with API routes cannot be statically exported."
-      : "";
+    const hint = msg.includes("API Routes") ? " Apps with API routes cannot be statically exported." : "";
     throw new Error(`Static export build failed.${hint}`);
   } finally {
     if (configPath && original) writeFileSync(configPath, original);
