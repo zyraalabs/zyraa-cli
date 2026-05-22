@@ -212,6 +212,13 @@ export function App({ deploy = false }: AppProps) {
 
       <Box paddingX={1} flexDirection="column" gap={1}>
         <InputBox value={displayInput} focused />
+        {deploy && (
+          <Box paddingX={1} gap={2}>
+            <Text color={theme.brand} bold>{"⬆"}</Text>
+            <Text color={theme.brand}>{"deploy mode"}</Text>
+            <Text color={theme.fgMuted}>{"— each build publishes live automatically"}</Text>
+          </Box>
+        )}
         <Box paddingX={1}>
           <Text color={theme.fgSubtle}>{hintText}</Text>
         </Box>
