@@ -11,9 +11,11 @@ interface Props {
   fileCount: number;
   timings: Timings;
   mode?: "generate" | "reprompt";
+  deployUrl?: string;
+  deployError?: string;
 }
 
-export function DoneView({ installWarning, timings }: Props) {
+export function DoneView({ installWarning, timings, deployUrl, deployError }: Props) {
   const theme = useTheme();
 
   return (
@@ -30,17 +32,32 @@ export function DoneView({ installWarning, timings }: Props) {
         )}
       </Box>
 
-      <Divider />
-
-      <Box flexDirection="column" gap={1} paddingLeft={1}>
-        <Text color={theme.fgMuted}>{"Run your app"}</Text>
-        <Box gap={1}>
-          <Text color={theme.brand} bold>{"$"}</Text>
-          <Text bold color={theme.fg}>{"pnpm dev"}</Text>
+      {deployUrl ? (
+        <Box gap={2}>
+          <Text color={theme.success} bold>{"✓"}</Text>
+          <Box flexDirection="column">
+            <Text bold color={theme.fg}>{"Deployed live"}</Text>
+            <Text color={theme.brand}>{deployUrl}</Text>
+          </Box>
         </Box>
-      </Box>
+      ) : deployError ? (
+        <Badge type="warn" label={`Deploy: ${deployError}`} />
+      ) : null}
 
       <Divider />
+
+      {!deployUrl && (
+        <>
+          <Box flexDirection="column" gap={1} paddingLeft={1}>
+            <Text color={theme.fgMuted}>{"Run your app"}</Text>
+            <Box gap={1}>
+              <Text color={theme.brand} bold>{"$"}</Text>
+              <Text bold color={theme.fg}>{"pnpm dev"}</Text>
+            </Box>
+          </Box>
+          <Divider />
+        </>
+      )}
 
       <Text color={theme.fgSubtle}>{"press any key to continue  ·  ctrl+c to exit"}</Text>
     </Box>

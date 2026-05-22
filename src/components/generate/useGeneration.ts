@@ -19,6 +19,8 @@ import {
   refreshZyraaIndex,
 } from "../../lib/fileReader.js";
 import { nextActionWord } from "../../lib/actionWords.js";
+import { buildStaticExport, zipOutDir } from "../../lib/deployer.js";
+import { deployProject } from "../../api/endpoints/deploy.js";
 
 export type Stage =
   | "detecting"
@@ -27,6 +29,7 @@ export type Stage =
   | "installing"
   | "validating"
   | "fixing"
+  | "deploying"
   | "done"
   | "error";
 
@@ -42,6 +45,7 @@ export interface Timings {
   scaffolding?: number;
   generating?: number;
   installing?: number;
+  deploying?: number;
   total?: number;
 }
 
@@ -55,6 +59,8 @@ export interface GenerationResult {
   installWarning: string;
   error: AppError | null;
   generationId: string;
+  deployUrl: string;
+  deployError: string;
 }
 
 function resolveError(err: unknown): AppError {
@@ -97,7 +103,7 @@ function resolveError(err: unknown): AppError {
   return { message: err.message };
 }
 
-export function useGeneration(prompt: string) {
+export function useGeneration(prompt: string, deploy = false) {
   const [stage, setStage] = useState<Stage>("detecting");
   const [framework, setFramework] = useState("");
   const [reasoning, setReasoning] = useState("");
@@ -117,6 +123,8 @@ export function useGeneration(prompt: string) {
   const [error, setError] = useState<AppError | null>(null);
   const [timings, setTimings] = useState<Timings>({});
   const [generationId, setGenerationId] = useState("");
+  const [deployUrl, setDeployUrl] = useState("");
+  const [deployError, setDeployError] = useState("");
 
   const stageStart = useRef(Date.now());
   const sessionStart = useRef(Date.now());
@@ -279,6 +287,23 @@ export function useGeneration(prompt: string) {
 
         const total = (Date.now() - sessionStart.current) / 1000;
         setTimings((prev) => ({ ...prev, total }));
+
+        if (deploy) {
+          setStage("deploying");
+          stageStart.current = Date.now();
+          try {
+            await buildStaticExport(process.cwd());
+            const zip = zipOutDir(process.cwd());
+            const { url } = await deployProject(generationId, zip);
+            setDeployUrl(url);
+            recordTiming("deploying");
+          } catch (err) {
+            setDeployError(
+              err instanceof Error ? err.message : "Deployment failed",
+            );
+          }
+        }
+
         setStage("done");
       } catch (err) {
         setError(resolveError(err));
@@ -306,5 +331,7 @@ export function useGeneration(prompt: string) {
     fixingErrors,
     fixedErrors,
     remainingErrors,
+    deployUrl,
+    deployError,
   };
 }

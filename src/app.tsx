@@ -19,12 +19,14 @@ export function startApp(args: string[]): void {
     return;
   }
 
-  const prompt = args.join(" ").trim();
+  const deploy = args.includes("--deploy");
+  const filteredArgs = args.filter((a) => a !== "--deploy");
+  const prompt = filteredArgs.join(" ").trim();
 
   if (!prompt) {
     render(<ThemeProvider><App /></ThemeProvider>);
     return;
   }
 
-  render(<ThemeProvider><Generate prompt={prompt} /></ThemeProvider>);
+  render(<ThemeProvider><Generate prompt={prompt} deploy={deploy} /></ThemeProvider>);
 }

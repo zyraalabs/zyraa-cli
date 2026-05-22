@@ -15,9 +15,10 @@ import { IS_MOCK } from "../lib/mock.js";
 interface Props {
   prompt: string;
   onDone?: (result: GenerationResult) => void;
+  deploy?: boolean;
 }
 
-export function Generate({ prompt, onDone }: Props) {
+export function Generate({ prompt, onDone, deploy = false }: Props) {
   const { exit } = useApp();
 
   const {
@@ -25,7 +26,8 @@ export function Generate({ prompt, onDone }: Props) {
     generatedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, generationId,
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
-  } = useGeneration(prompt);
+    deployUrl, deployError,
+  } = useGeneration(prompt, deploy);
 
   function buildResult(): GenerationResult {
     return {
@@ -34,6 +36,8 @@ export function Generate({ prompt, onDone }: Props) {
       timings, usage, installWarning,
       error: error ?? null,
       generationId,
+      deployUrl,
+      deployError,
     };
   }
 
@@ -46,7 +50,7 @@ export function Generate({ prompt, onDone }: Props) {
     if (onDone) onDone(buildResult()); else exit();
   }
 
-  const activeStages: Stage[] = ["detecting", "scaffolding", "generating", "installing", "validating", "fixing", "done", "error"];
+  const activeStages: Stage[] = ["detecting", "scaffolding", "generating", "installing", "validating", "fixing", "deploying", "done", "error"];
   const stageIndex = (s: Stage) => activeStages.indexOf(s);
   const past = (s: Stage) => stageIndex(stage) > stageIndex(s);
 
@@ -90,6 +94,7 @@ export function Generate({ prompt, onDone }: Props) {
 
         {stage === "detecting"   && <Spinner label="Detecting framework..." />}
         {stage === "scaffolding" && <Spinner label="Scaffolding project..." />}
+        {stage === "deploying"   && <Spinner label="Deploying to Netlify..." />}
         {stage === "generating"  && (
           <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={generatedFiles} />
         )}
@@ -109,6 +114,8 @@ export function Generate({ prompt, onDone }: Props) {
             framework={framework}
             fileCount={generatedFiles.length}
             timings={timings}
+            deployUrl={deployUrl}
+            deployError={deployError}
           />
         )}
         {stage === "error" && error && (
