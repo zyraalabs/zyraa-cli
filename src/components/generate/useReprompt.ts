@@ -157,6 +157,7 @@ export function useReprompt(
 
         const parsedFiles = parseGenerateResponse(output).files;
         writeFiles(parsedFiles, process.cwd());
+        refreshZyraaIndex(process.cwd());
         setUsage(u);
         recordTiming("generating");
 
