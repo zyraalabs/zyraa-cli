@@ -205,7 +205,7 @@ export function useReprompt(
           }
 
           const { output: fixOutput } = await streamReprompt(
-            { generationId, prompt: errorPrompt, files: fixFiles, framework },
+            { generationId, prompt: errorPrompt, files: fixFiles, framework, isFix: true },
             () => {},
           );
 

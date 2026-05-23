@@ -267,6 +267,7 @@ export function useGeneration(prompt: string, deploy = false) {
               prompt: errorPrompt,
               files,
               framework: currentFramework,
+              isFix: true,
             },
             () => {},
           );

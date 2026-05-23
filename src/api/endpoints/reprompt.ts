@@ -5,6 +5,7 @@ interface RepromptRequest {
   prompt: string;
   files: Array<{ path: string; content: string }>;
   framework?: string;
+  isFix?: boolean;
 }
 
 export interface RepromptResult {
