@@ -7,7 +7,7 @@ import { writeFiles } from "../../lib/fileWriter.js";
 import { installDependencies } from "../../lib/projectSetup.js";
 import { runBuild, type BuildError } from "../../lib/buildValidator.js";
 import { nextActionWord } from "../../lib/actionWords.js";
-import { buildStaticExport, zipOutDir } from "../../lib/deployer.js";
+import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
 import type { AppError, Timings } from "./useGeneration.js";
 
@@ -180,7 +180,9 @@ export function useReprompt(
 
         while (fixAttemptCount < MAX_FIX_ATTEMPTS) {
           setStage("validating");
-          const build = await runBuild(process.cwd());
+          const build = deploy
+            ? await runDeployBuild(process.cwd())
+            : await runBuild(process.cwd());
           if (build.clean) break;
 
           fixAttemptCount++;
@@ -220,7 +222,9 @@ export function useReprompt(
 
         if (fixAttemptCount >= MAX_FIX_ATTEMPTS) {
           setStage("validating");
-          const finalBuild = await runBuild(process.cwd());
+          const finalBuild = deploy
+            ? await runDeployBuild(process.cwd())
+            : await runBuild(process.cwd());
           if (!finalBuild.clean) setRemainingErrors(finalBuild.parsed);
         }
 

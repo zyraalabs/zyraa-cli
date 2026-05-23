@@ -19,7 +19,7 @@ import {
   refreshZyraaIndex,
 } from "../../lib/fileReader.js";
 import { nextActionWord } from "../../lib/actionWords.js";
-import { buildStaticExport, zipOutDir } from "../../lib/deployer.js";
+import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
 
 export type Stage =
@@ -237,7 +237,9 @@ export function useGeneration(prompt: string, deploy = false) {
 
         while (fixAttempt < MAX_FIX_ATTEMPTS) {
           setStage("validating");
-          const build = await runBuild(process.cwd());
+          const build = deploy
+            ? await runDeployBuild(process.cwd())
+            : await runBuild(process.cwd());
           if (build.clean) break;
 
           fixAttempt++;
@@ -283,7 +285,9 @@ export function useGeneration(prompt: string, deploy = false) {
 
         if (fixAttempt >= MAX_FIX_ATTEMPTS) {
           setStage("validating");
-          const finalBuild = await runBuild(process.cwd());
+          const finalBuild = deploy
+            ? await runDeployBuild(process.cwd())
+            : await runBuild(process.cwd());
           if (!finalBuild.clean) setRemainingErrors(finalBuild.parsed);
         }
 
@@ -294,7 +298,7 @@ export function useGeneration(prompt: string, deploy = false) {
           setStage("deploying");
           stageStart.current = Date.now();
           try {
-            await buildStaticExport(process.cwd());
+            await buildStaticExport(process.cwd(), false);
             const zip = zipOutDir(process.cwd());
             const { url, netlifyId: nid } = await deployProject(generationId, zip);
             setDeployUrl(url);
