@@ -22,6 +22,7 @@ import { nextActionWord } from "../../lib/actionWords.js";
 import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
 import { scanEnvVars, writeEnvFile, type EnvVar } from "../../lib/envScanner.js";
+import { launchDevServer } from "../../lib/devServer.js";
 
 export type Stage =
   | "detecting"
@@ -31,6 +32,7 @@ export type Stage =
   | "installing"
   | "validating"
   | "fixing"
+  | "launching"
   | "deploying"
   | "done"
   | "error";
@@ -48,6 +50,7 @@ export interface Timings {
   generating?: number;
   collectingEnv?: number;
   installing?: number;
+  launching?: number;
   deploying?: number;
   total?: number;
 }
@@ -130,6 +133,7 @@ export function useGeneration(prompt: string, deploy = false) {
   const [deployUrl, setDeployUrl] = useState("");
   const [deployError, setDeployError] = useState("");
   const [netlifyId, setNetlifyId] = useState("");
+  const [devServerUrl, setDevServerUrl] = useState("");
   const [pendingEnvVars, setPendingEnvVars] = useState<EnvVar[]>([]);
 
   const stageStart = useRef(Date.now());
@@ -334,6 +338,12 @@ export function useGeneration(prompt: string, deploy = false) {
           } catch (err) {
             setDeployError(err instanceof Error ? err.message : "Deployment failed");
           }
+        } else {
+          setStage("launching");
+          stageStart.current = Date.now();
+          const url = await launchDevServer(process.cwd());
+          if (url) setDevServerUrl(url);
+          recordTiming("launching");
         }
 
         setStage("done");
@@ -368,5 +378,6 @@ export function useGeneration(prompt: string, deploy = false) {
     netlifyId,
     pendingEnvVars,
     resolveEnvVars,
+    devServerUrl,
   };
 }

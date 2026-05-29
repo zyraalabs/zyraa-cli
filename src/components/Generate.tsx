@@ -29,6 +29,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
     deployUrl, deployError, netlifyId,
     pendingEnvVars, resolveEnvVars,
+    devServerUrl,
   } = useGeneration(prompt, deploy);
 
   function buildResult(): GenerationResult {
@@ -53,7 +54,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
     if (onDone) onDone(buildResult()); else exit();
   }
 
-  const activeStages: Stage[] = ["detecting", "scaffolding", "generating", "collecting-env", "installing", "validating", "fixing", "deploying", "done", "error"];
+  const activeStages: Stage[] = ["detecting", "scaffolding", "generating", "collecting-env", "installing", "validating", "fixing", "launching", "deploying", "done", "error"];
   const stageIndex = (s: Stage) => activeStages.indexOf(s);
   const past = (s: Stage) => stageIndex(stage) > stageIndex(s);
 
@@ -63,6 +64,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
   const pastCollectingEnv  = past("collecting-env");
   const pastInstalling     = past("installing");
   const pastValidating     = past("validating") || stage === "done";
+  const pastLaunching      = Boolean(devServerUrl);
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -93,6 +95,9 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
         {pastValidating && fixAttempt > 0 && (
           <StatusRow label={`auto-fixed ${fixAttempt} build error${fixAttempt > 1 ? "s" : ""}`} dimLabel />
         )}
+        {pastLaunching && (
+          <StatusRow label={`dev server running  ·  ${devServerUrl}`} timing={timings.launching} dimLabel />
+        )}
         {(stage === "done") && remainingErrors.length > 0 && (
           <RemainingErrorsView errors={remainingErrors} />
         )}
@@ -109,6 +114,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
           <EnvCollector envVars={pendingEnvVars} onDone={resolveEnvVars} />
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
+        {stage === "launching"   && <Spinner label="Starting dev server..." />}
         {(stage === "validating" || stage === "fixing") && (
           <BuildValidationView
             stage={stage}
@@ -126,6 +132,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
             timings={timings}
             deployUrl={deployUrl}
             deployError={deployError}
+            devServerUrl={devServerUrl}
           />
         )}
         {stage === "error" && error && (

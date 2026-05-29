@@ -10,6 +10,7 @@ import { nextActionWord } from "../../lib/actionWords.js";
 import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
 import { scanNewEnvVars, writeEnvFile, type EnvVar } from "../../lib/envScanner.js";
+import { launchDevServer } from "../../lib/devServer.js";
 import type { AppError, Timings } from "./useGeneration.js";
 
 const MAX_FIX_ATTEMPTS = 3;
@@ -22,6 +23,7 @@ export type RepromptStage =
   | "installing"
   | "validating"
   | "fixing"
+  | "launching"
   | "deploying"
   | "done"
   | "error";
@@ -94,6 +96,7 @@ export function useReprompt(
   const [selectedCount, setSelectedCount] = useState(0);
   const [deployUrl, setDeployUrl] = useState("");
   const [deployError, setDeployError] = useState("");
+  const [devServerUrl, setDevServerUrl] = useState("");
   const [pendingEnvVars, setPendingEnvVars] = useState<EnvVar[]>([]);
 
   const stageStart = useRef(Date.now());
@@ -267,6 +270,12 @@ export function useReprompt(
           } catch (err) {
             setDeployError(err instanceof Error ? err.message : "Deployment failed");
           }
+        } else {
+          setStage("launching");
+          stageStart.current = Date.now();
+          const url = await launchDevServer(process.cwd());
+          if (url) setDevServerUrl(url);
+          recordTiming("launching");
         }
 
         setStage("done");
@@ -297,5 +306,6 @@ export function useReprompt(
     deployError,
     pendingEnvVars,
     resolveEnvVars,
+    devServerUrl,
   };
 }

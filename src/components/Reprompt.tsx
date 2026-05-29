@@ -29,6 +29,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
     deployUrl, deployError,
     pendingEnvVars, resolveEnvVars,
+    devServerUrl,
   } = useReprompt(prompt, generationId, framework, deploy, netlifyId);
 
   function buildResult(): RepromptResult {
@@ -58,6 +59,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
   const pastCollectingEnv  = Boolean(timings.collectingEnv);
   const pastInstalling     = doneStages.includes(stage);
   const pastValidating     = stage === "done";
+  const pastLaunching      = Boolean(devServerUrl);
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -86,6 +88,9 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
         {pastValidating && fixAttempt > 0 && (
           <StatusRow label={`auto-fixed ${fixAttempt} build error${fixAttempt > 1 ? "s" : ""}`} dimLabel />
         )}
+        {pastLaunching && (
+          <StatusRow label={`dev server running  ·  ${devServerUrl}`} timing={timings.launching} dimLabel />
+        )}
         {stage === "done" && remainingErrors.length > 0 && (
           <RemainingErrorsView errors={remainingErrors} />
         )}
@@ -101,6 +106,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
           <EnvCollector envVars={pendingEnvVars} onDone={resolveEnvVars} />
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
+        {stage === "launching"   && <Spinner label="Starting dev server..." />}
         {stage === "deploying"   && <Spinner label="Redeploying to Netlify..." />}
         {(stage === "validating" || stage === "fixing") && (
           <BuildValidationView
@@ -120,6 +126,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
             mode="reprompt"
             deployUrl={deployUrl}
             deployError={deployError}
+            devServerUrl={devServerUrl}
           />
         )}
         {stage === "error" && error && (
