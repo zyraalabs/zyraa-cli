@@ -27,7 +27,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
     generatedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, generationId,
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
-    deployUrl, deployError, netlifyId,
+    deployUrl, deployError, vercelProjectId,
     pendingEnvVars, resolveEnvVars,
     devServerUrl,
   } = useGeneration(prompt, deploy);
@@ -41,7 +41,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
       generationId,
       deployUrl,
       deployError,
-      netlifyId,
+      vercelProjectId,
     };
   }
 
@@ -106,7 +106,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
 
         {stage === "detecting"   && <Spinner label="Detecting framework..." />}
         {stage === "scaffolding" && <Spinner label="Scaffolding project..." />}
-        {stage === "deploying"   && <Spinner label="Deploying to Netlify..." />}
+        {stage === "deploying"   && <Spinner label="Deploying to Vercel..." />}
         {stage === "generating"  && (
           <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={generatedFiles} />
         )}

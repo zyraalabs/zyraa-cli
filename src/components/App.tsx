@@ -50,9 +50,9 @@ export function App({ deploy = false }: AppProps) {
     const meta = readZyraaMeta(process.cwd());
     return meta?.framework ?? "nextjs";
   });
-  const [activeNetlifyId, setActiveNetlifyId] = useState(() => {
+  const [activeVercelProjectId, setActiveVercelProjectId] = useState(() => {
     const meta = readZyraaMeta(process.cwd());
-    return meta?.netlifyId ?? "";
+    return meta?.vercelProjectId ?? "";
   });
 
   const termWidth    = stdout?.columns ?? 80;
@@ -109,7 +109,7 @@ export function App({ deploy = false }: AppProps) {
 
   function handleGenerateDone(result: GenerationResult) {
     if (result.generationId) setActiveGenerationId(result.generationId);
-    if (result.netlifyId) setActiveNetlifyId(result.netlifyId);
+    if (result.vercelProjectId) setActiveVercelProjectId(result.vercelProjectId);
     setActiveFramework(result.framework);
     gitCommit(result.prompt, process.cwd());
     setSessions((prev) => [
@@ -196,7 +196,7 @@ export function App({ deploy = false }: AppProps) {
           generationId={activeGenerationId}
           framework={activeFramework}
           deploy={deploy}
-          netlifyId={activeNetlifyId}
+          vercelProjectId={activeVercelProjectId}
           onDone={handleRepromptDone}
         />
       </Box>

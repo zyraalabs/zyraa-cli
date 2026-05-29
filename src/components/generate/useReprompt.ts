@@ -7,7 +7,7 @@ import { writeFiles } from "../../lib/fileWriter.js";
 import { installDependencies } from "../../lib/projectSetup.js";
 import { runBuild, type BuildError } from "../../lib/buildValidator.js";
 import { nextActionWord } from "../../lib/actionWords.js";
-import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
+import { zipSourceFiles, runDeployBuild } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
 import { scanNewEnvVars, writeEnvFile, type EnvVar } from "../../lib/envScanner.js";
 import { launchDevServer } from "../../lib/devServer.js";
@@ -76,7 +76,7 @@ export function useReprompt(
   generationId: string,
   framework: string,
   deploy = false,
-  netlifyId = "",
+  vercelProjectId = "",
 ) {
   const [stage, setStage] = useState<RepromptStage>("analyzing");
   const [changedFiles, setChangedFiles] = useState<string[]>([]);
@@ -97,6 +97,7 @@ export function useReprompt(
   const [deployUrl, setDeployUrl] = useState("");
   const [deployError, setDeployError] = useState("");
   const [devServerUrl, setDevServerUrl] = useState("");
+  const [vercelProjectIdState, setVercelProjectId] = useState(vercelProjectId);
   const [pendingEnvVars, setPendingEnvVars] = useState<EnvVar[]>([]);
 
   const stageStart = useRef(Date.now());
@@ -262,9 +263,9 @@ export function useReprompt(
           setStage("deploying");
           stageStart.current = Date.now();
           try {
-            await buildStaticExport(process.cwd(), true);
-            const zip = zipOutDir(process.cwd());
-            const { url } = await deployProject(generationId, zip, netlifyId || undefined);
+            const zip = zipSourceFiles(process.cwd());
+            const { url, vercelProjectId: pid } = await deployProject(generationId, zip, vercelProjectId || undefined);
+            setVercelProjectId(pid);
             setDeployUrl(url);
             recordTiming("deploying");
           } catch (err) {
@@ -307,5 +308,6 @@ export function useReprompt(
     pendingEnvVars,
     resolveEnvVars,
     devServerUrl,
+    vercelProjectId: vercelProjectIdState,
   };
 }

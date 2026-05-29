@@ -2,16 +2,16 @@ import axiosInstance from "../../lib/axiosInstance.js";
 
 export interface DeployResult {
   url: string;
-  netlifyId: string;
+  vercelProjectId: string;
 }
 
 export async function deployProject(
   generationId: string,
   zip: Buffer,
-  netlifyId?: string,
+  vercelProjectId?: string,
 ): Promise<DeployResult> {
   const params = new URLSearchParams({ generationId });
-  if (netlifyId) params.set("netlifyId", netlifyId);
+  if (vercelProjectId) params.set("vercelProjectId", vercelProjectId);
 
   const { data } = await axiosInstance.post<DeployResult>(
     `/api/deploy?${params.toString()}`,

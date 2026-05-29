@@ -19,7 +19,7 @@ import {
   refreshZyraaIndex,
 } from "../../lib/fileReader.js";
 import { nextActionWord } from "../../lib/actionWords.js";
-import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
+import { zipSourceFiles, runDeployBuild } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
 import { scanEnvVars, writeEnvFile, type EnvVar } from "../../lib/envScanner.js";
 import { launchDevServer } from "../../lib/devServer.js";
@@ -67,7 +67,7 @@ export interface GenerationResult {
   generationId: string;
   deployUrl: string;
   deployError: string;
-  netlifyId: string;
+  vercelProjectId: string;
 }
 
 function resolveError(err: unknown): AppError {
@@ -132,7 +132,7 @@ export function useGeneration(prompt: string, deploy = false) {
   const [generationId, setGenerationId] = useState("");
   const [deployUrl, setDeployUrl] = useState("");
   const [deployError, setDeployError] = useState("");
-  const [netlifyId, setNetlifyId] = useState("");
+  const [vercelProjectId, setVercelProjectId] = useState("");
   const [devServerUrl, setDevServerUrl] = useState("");
   const [pendingEnvVars, setPendingEnvVars] = useState<EnvVar[]>([]);
 
@@ -328,12 +328,11 @@ export function useGeneration(prompt: string, deploy = false) {
           setStage("deploying");
           stageStart.current = Date.now();
           try {
-            await buildStaticExport(process.cwd(), false);
-            const zip = zipOutDir(process.cwd());
-            const { url, netlifyId: nid } = await deployProject(generationId, zip);
+            const zip = zipSourceFiles(process.cwd());
+            const { url, vercelProjectId: pid } = await deployProject(generationId, zip);
             setDeployUrl(url);
-            setNetlifyId(nid);
-            writeZyraaMeta(process.cwd(), generationId, currentFramework, nid);
+            setVercelProjectId(pid);
+            writeZyraaMeta(process.cwd(), generationId, currentFramework, pid);
             recordTiming("deploying");
           } catch (err) {
             setDeployError(err instanceof Error ? err.message : "Deployment failed");
@@ -375,7 +374,7 @@ export function useGeneration(prompt: string, deploy = false) {
     remainingErrors,
     deployUrl,
     deployError,
-    netlifyId,
+    vercelProjectId,
     pendingEnvVars,
     resolveEnvVars,
     devServerUrl,

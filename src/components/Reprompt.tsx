@@ -16,11 +16,11 @@ interface Props {
   generationId: string;
   framework: string;
   deploy?: boolean;
-  netlifyId?: string;
+  vercelProjectId?: string;
   onDone?: (result: RepromptResult) => void;
 }
 
-export function Reprompt({ prompt, generationId, framework, deploy = false, netlifyId = "", onDone }: Props) {
+export function Reprompt({ prompt, generationId, framework, deploy = false, vercelProjectId = "", onDone }: Props) {
   const { exit } = useApp();
 
   const {
@@ -30,7 +30,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
     deployUrl, deployError,
     pendingEnvVars, resolveEnvVars,
     devServerUrl,
-  } = useReprompt(prompt, generationId, framework, deploy, netlifyId);
+  } = useReprompt(prompt, generationId, framework, deploy, vercelProjectId);
 
   function buildResult(): RepromptResult {
     return {
@@ -107,7 +107,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
         {stage === "launching"   && <Spinner label="Starting dev server..." />}
-        {stage === "deploying"   && <Spinner label="Redeploying to Netlify..." />}
+        {stage === "deploying"   && <Spinner label="Redeploying to Vercel..." />}
         {(stage === "validating" || stage === "fixing") && (
           <BuildValidationView
             stage={stage}
