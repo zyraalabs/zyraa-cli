@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { Generate } from "./Generate.js";
 import { Reprompt } from "./Reprompt.js";
+import { Clarify } from "./Clarify.js";
 import { SessionSummaryRow } from "./SessionSummary.js";
 import { InputBox } from "./ui/InputBox.js";
 import { Divider } from "./ui/Divider.js";
@@ -12,7 +13,7 @@ import { gitCommit, gitRevert } from "../lib/gitOps.js";
 import type { GenerationResult } from "./generate/useGeneration.js";
 import type { RepromptResult } from "./generate/useReprompt.js";
 
-type AppState = "idle" | "generating" | "reprompting" | "confirm-revert";
+type AppState = "idle" | "clarifying" | "generating" | "reprompting" | "confirm-revert";
 
 interface AppProps {
   deploy?: boolean;
@@ -86,8 +87,7 @@ export function App({ deploy = false }: AppProps) {
       if (trimmed === "exit" || trimmed === "quit") { exit(); return; }
       setPrompt(trimmed);
       setInput("");
-      const canReprompt = hasZyraaIndex(process.cwd()) || Boolean(activeGenerationId);
-      setAppState(canReprompt ? "reprompting" : "generating");
+      setAppState("clarifying");
       return;
     }
 
@@ -100,6 +100,12 @@ export function App({ deploy = false }: AppProps) {
       setInput((prev) => prev + char.replace(/[\r\n]/g, " "));
     }
   });
+
+  function handleClarifyDone(enrichedPrompt: string) {
+    setPrompt(enrichedPrompt);
+    const canReprompt = hasZyraaIndex(process.cwd()) || Boolean(activeGenerationId);
+    setAppState(canReprompt ? "reprompting" : "generating");
+  }
 
   function handleGenerateDone(result: GenerationResult) {
     if (result.generationId) setActiveGenerationId(result.generationId);
@@ -159,6 +165,15 @@ export function App({ deploy = false }: AppProps) {
             <Text color={theme.fgSubtle}>{"press y to confirm  ·  any other key to cancel"}</Text>
           </Box>
         </Box>
+      </Box>
+    );
+  }
+
+  if (appState === "clarifying") {
+    return (
+      <Box flexDirection="column" paddingY={1}>
+        {sessionHistory}
+        <Clarify prompt={prompt} onDone={handleClarifyDone} />
       </Box>
     );
   }

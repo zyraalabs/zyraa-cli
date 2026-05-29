@@ -21,11 +21,13 @@ import {
 import { nextActionWord } from "../../lib/actionWords.js";
 import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
+import { scanEnvVars, writeEnvFile, type EnvVar } from "../../lib/envScanner.js";
 
 export type Stage =
   | "detecting"
   | "scaffolding"
   | "generating"
+  | "collecting-env"
   | "installing"
   | "validating"
   | "fixing"
@@ -44,6 +46,7 @@ export interface Timings {
   detecting?: number;
   scaffolding?: number;
   generating?: number;
+  collectingEnv?: number;
   installing?: number;
   deploying?: number;
   total?: number;
@@ -127,14 +130,21 @@ export function useGeneration(prompt: string, deploy = false) {
   const [deployUrl, setDeployUrl] = useState("");
   const [deployError, setDeployError] = useState("");
   const [netlifyId, setNetlifyId] = useState("");
+  const [pendingEnvVars, setPendingEnvVars] = useState<EnvVar[]>([]);
 
   const stageStart = useRef(Date.now());
   const sessionStart = useRef(Date.now());
+  const envResolverRef = useRef<((values: Record<string, string>) => void) | null>(null);
 
   function recordTiming(key: keyof Timings) {
     const elapsed = (Date.now() - stageStart.current) / 1000;
     setTimings((prev) => ({ ...prev, [key]: elapsed }));
     stageStart.current = Date.now();
+  }
+
+  function resolveEnvVars(values: Record<string, string>) {
+    envResolverRef.current?.(values);
+    envResolverRef.current = null;
   }
 
   useEffect(() => {
@@ -212,7 +222,6 @@ export function useGeneration(prompt: string, deploy = false) {
           setGenerationId(generationId);
           writeZyraaMeta(process.cwd(), generationId, detection.framework);
         }
-        // Guarantee .zyraa/index.md exists for reprompt routing — LLM may skip it
         if (!hasZyraaIndex(process.cwd())) {
           writeZyraaIndex(
             process.cwd(),
@@ -220,6 +229,22 @@ export function useGeneration(prompt: string, deploy = false) {
           );
         }
         recordTiming("generating");
+
+        // Pause and ask user for env var values if .env.example has placeholders
+        const envVars = scanEnvVars(process.cwd());
+        if (envVars.length > 0) {
+          setPendingEnvVars(envVars);
+          setStage("collecting-env");
+          stageStart.current = Date.now();
+          await new Promise<void>((resolve) => {
+            envResolverRef.current = (values: Record<string, string>) => {
+              writeEnvFile(values, process.cwd());
+              resolve();
+            };
+          });
+          setPendingEnvVars([]);
+          recordTiming("collectingEnv");
+        }
 
         setStage("installing");
         stageStart.current = Date.now();
@@ -341,5 +366,7 @@ export function useGeneration(prompt: string, deploy = false) {
     deployUrl,
     deployError,
     netlifyId,
+    pendingEnvVars,
+    resolveEnvVars,
   };
 }

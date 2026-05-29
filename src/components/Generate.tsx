@@ -9,6 +9,7 @@ import { BuildValidationView } from "./generate/BuildValidationView.js";
 import { RemainingErrorsView } from "./generate/RemainingErrorsView.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
+import { EnvCollector } from "./generate/EnvCollector.js";
 import { useGeneration, type GenerationResult, type Stage } from "./generate/useGeneration.js";
 import { IS_MOCK } from "../lib/mock.js";
 
@@ -27,6 +28,7 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
     usage, installWarning, error, timings, generationId,
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
     deployUrl, deployError, netlifyId,
+    pendingEnvVars, resolveEnvVars,
   } = useGeneration(prompt, deploy);
 
   function buildResult(): GenerationResult {
@@ -51,15 +53,16 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
     if (onDone) onDone(buildResult()); else exit();
   }
 
-  const activeStages: Stage[] = ["detecting", "scaffolding", "generating", "installing", "validating", "fixing", "deploying", "done", "error"];
+  const activeStages: Stage[] = ["detecting", "scaffolding", "generating", "collecting-env", "installing", "validating", "fixing", "deploying", "done", "error"];
   const stageIndex = (s: Stage) => activeStages.indexOf(s);
   const past = (s: Stage) => stageIndex(stage) > stageIndex(s);
 
-  const pastDetecting   = stage !== "detecting";
-  const pastScaffolding = wasScaffolded && past("scaffolding");
-  const pastGenerating  = generatedFiles.length > 0 && past("generating");
-  const pastInstalling  = past("installing");
-  const pastValidating  = past("validating") || stage === "done";
+  const pastDetecting      = stage !== "detecting";
+  const pastScaffolding    = wasScaffolded && past("scaffolding");
+  const pastGenerating     = generatedFiles.length > 0 && past("generating");
+  const pastCollectingEnv  = past("collecting-env");
+  const pastInstalling     = past("installing");
+  const pastValidating     = past("validating") || stage === "done";
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -81,6 +84,9 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
         {pastGenerating && (
           <StatusRow label={`${generatedFiles.length} files generated`} timing={timings.generating} dimLabel />
         )}
+        {pastCollectingEnv && (
+          <StatusRow label="environment configured" timing={timings.collectingEnv} dimLabel />
+        )}
         {pastInstalling && !installWarning && (
           <StatusRow label="dependencies installed" timing={timings.installing} dimLabel />
         )}
@@ -98,6 +104,9 @@ export function Generate({ prompt, onDone, deploy = false }: Props) {
         {stage === "deploying"   && <Spinner label="Deploying to Netlify..." />}
         {stage === "generating"  && (
           <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={generatedFiles} />
+        )}
+        {stage === "collecting-env" && pendingEnvVars.length > 0 && (
+          <EnvCollector envVars={pendingEnvVars} onDone={resolveEnvVars} />
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
         {(stage === "validating" || stage === "fixing") && (
