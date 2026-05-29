@@ -9,6 +9,7 @@ import { runBuild, type BuildError } from "../../lib/buildValidator.js";
 import { nextActionWord } from "../../lib/actionWords.js";
 import { buildStaticExport, runDeployBuild, zipOutDir } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
+import { scanNewEnvVars, writeEnvFile, type EnvVar } from "../../lib/envScanner.js";
 import type { AppError, Timings } from "./useGeneration.js";
 
 const MAX_FIX_ATTEMPTS = 3;
@@ -17,6 +18,7 @@ export type RepromptStage =
   | "analyzing"
   | "reading"
   | "reprompting"
+  | "collecting-env"
   | "installing"
   | "validating"
   | "fixing"
@@ -92,14 +94,21 @@ export function useReprompt(
   const [selectedCount, setSelectedCount] = useState(0);
   const [deployUrl, setDeployUrl] = useState("");
   const [deployError, setDeployError] = useState("");
+  const [pendingEnvVars, setPendingEnvVars] = useState<EnvVar[]>([]);
 
   const stageStart = useRef(Date.now());
   const sessionStart = useRef(Date.now());
+  const envResolverRef = useRef<((values: Record<string, string>) => void) | null>(null);
 
   function recordTiming(key: keyof Timings) {
     const elapsed = (Date.now() - stageStart.current) / 1000;
     setTimings((prev) => ({ ...prev, [key]: elapsed }));
     stageStart.current = Date.now();
+  }
+
+  function resolveEnvVars(values: Record<string, string>) {
+    envResolverRef.current?.(values);
+    envResolverRef.current = null;
   }
 
   useEffect(() => {
@@ -161,7 +170,21 @@ export function useReprompt(
         setUsage(u);
         recordTiming("generating");
 
-        // Only install if package.json was among the changed files
+        const newEnvVars = scanNewEnvVars(process.cwd());
+        if (newEnvVars.length > 0) {
+          setPendingEnvVars(newEnvVars);
+          setStage("collecting-env");
+          stageStart.current = Date.now();
+          await new Promise<void>((resolve) => {
+            envResolverRef.current = (values: Record<string, string>) => {
+              writeEnvFile(values, process.cwd());
+              resolve();
+            };
+          });
+          setPendingEnvVars([]);
+          recordTiming("collectingEnv");
+        }
+
         const needsInstall = parsedFiles.some((f) => f.path === "package.json");
         if (needsInstall) {
           setStage("installing");
@@ -272,5 +295,7 @@ export function useReprompt(
     selectedCount,
     deployUrl,
     deployError,
+    pendingEnvVars,
+    resolveEnvVars,
   };
 }

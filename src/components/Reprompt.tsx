@@ -8,6 +8,7 @@ import { BuildValidationView } from "./generate/BuildValidationView.js";
 import { RemainingErrorsView } from "./generate/RemainingErrorsView.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
+import { EnvCollector } from "./generate/EnvCollector.js";
 import { useReprompt, type RepromptResult } from "./generate/useReprompt.js";
 
 interface Props {
@@ -27,6 +28,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
     usage, installWarning, error, timings, selectedCount,
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
     deployUrl, deployError,
+    pendingEnvVars, resolveEnvVars,
   } = useReprompt(prompt, generationId, framework, deploy, netlifyId);
 
   function buildResult(): RepromptResult {
@@ -50,11 +52,12 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
   }
 
   const doneStages = ["validating", "fixing", "done"];
-  const pastAnalyzing   = stage !== "analyzing";
-  const pastReading     = !["analyzing", "reading"].includes(stage);
-  const pastReprompting = changedFiles.length > 0 && ["installing", ...doneStages].includes(stage);
-  const pastInstalling  = doneStages.includes(stage);
-  const pastValidating  = stage === "done";
+  const pastAnalyzing      = stage !== "analyzing";
+  const pastReading        = !["analyzing", "reading"].includes(stage);
+  const pastReprompting    = changedFiles.length > 0 && ["collecting-env", "installing", ...doneStages].includes(stage);
+  const pastCollectingEnv  = Boolean(timings.collectingEnv);
+  const pastInstalling     = doneStages.includes(stage);
+  const pastValidating     = stage === "done";
 
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -74,6 +77,9 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
         {pastReprompting && (
           <StatusRow label={`${changedFiles.length} files updated`} timing={timings.generating} dimLabel />
         )}
+        {pastCollectingEnv && (
+          <StatusRow label="environment configured" timing={timings.collectingEnv} dimLabel />
+        )}
         {pastInstalling && !installWarning && (
           <StatusRow label="dependencies installed" timing={timings.installing} dimLabel />
         )}
@@ -90,6 +96,9 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, netl
         {stage === "reading"     && <Spinner label="Loading files..." />}
         {stage === "reprompting" && (
           <GeneratingView activeFile={activeFile} actionWord={actionWord} generatedFiles={changedFiles} />
+        )}
+        {stage === "collecting-env" && pendingEnvVars.length > 0 && (
+          <EnvCollector envVars={pendingEnvVars} onDone={resolveEnvVars} />
         )}
         {stage === "installing"  && <Spinner label="Installing dependencies..." />}
         {stage === "deploying"   && <Spinner label="Redeploying to Netlify..." />}

@@ -74,6 +74,55 @@ export function scanEnvVars(projectDir: string): EnvVar[] {
   return result;
 }
 
+export function scanNewEnvVars(projectDir: string): EnvVar[] {
+  const examplePath = join(projectDir, ".env.example");
+  if (!existsSync(examplePath)) return [];
+
+  const lines = readFileSync(examplePath, "utf-8").split(/\r?\n/);
+  const candidates: EnvVar[] = [];
+  let pendingHint = "";
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line === "") { pendingHint = ""; continue; }
+    if (line.startsWith("#")) {
+      const comment = line.replace(/^#+\s*/, "").trim();
+      if (comment) pendingHint = comment;
+      continue;
+    }
+    const eqIdx = line.indexOf("=");
+    if (eqIdx === -1) { pendingHint = ""; continue; }
+    const key = line.slice(0, eqIdx).trim();
+    const value = line.slice(eqIdx + 1).trim();
+    if (!key || !/^[A-Z_][A-Z0-9_]*$/i.test(key)) { pendingHint = ""; continue; }
+    if (isPlaceholder(key, value)) {
+      candidates.push({ key, hint: pendingHint, placeholder: value });
+    }
+    pendingHint = "";
+  }
+
+  if (candidates.length === 0) return [];
+
+  // Cross-reference .env.local — skip keys that already have a real value set
+  const envLocalPath = join(projectDir, ".env.local");
+  if (!existsSync(envLocalPath)) return candidates;
+
+  const localValues = new Map<string, string>();
+  for (const raw of readFileSync(envLocalPath, "utf-8").split(/\r?\n/)) {
+    const eqIdx = raw.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = raw.slice(0, eqIdx).trim();
+    const value = raw.slice(eqIdx + 1).trim();
+    if (key) localValues.set(key, value);
+  }
+
+  return candidates.filter(({ key }) => {
+    const localVal = localValues.get(key);
+    if (localVal === undefined) return true;
+    return isPlaceholder(key, localVal);
+  });
+}
+
 export function writeEnvFile(vars: Record<string, string>, projectDir: string): void {
   const entries = Object.entries(vars).filter(([, v]) => v.trim() !== "");
   if (entries.length === 0) return;

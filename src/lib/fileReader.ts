@@ -80,12 +80,13 @@ export function readZyraaMeta(
   }
 }
 
+const FILE_INDEX_HEADER = "\n## File Index";
+
 export function writeZyraaIndex(cwd: string, filePaths: string[]): void {
   const dir = join(cwd, ".zyraa");
   mkdirSync(dir, { recursive: true });
-  const content =
-    "# Project Index\n\n" + filePaths.map((p) => `- ${p}`).join("\n");
-  writeFileSync(join(dir, "index.md"), content);
+  const fileList = filePaths.map((p) => `- ${p}`).join("\n");
+  writeFileSync(join(dir, "index.md"), `# Project Index${FILE_INDEX_HEADER}\n\n${fileList}\n`);
 }
 
 export function refreshZyraaIndex(cwd: string): void {
@@ -95,7 +96,22 @@ export function refreshZyraaIndex(cwd: string): void {
   for (const name of ["package.json", "tsconfig.json", "next.config.ts", "next.config.js"]) {
     if (existsSync(join(cwd, name))) files.push(name);
   }
-  if (files.length > 0) writeZyraaIndex(cwd, files);
+  if (files.length === 0) return;
+
+  const indexPath = join(cwd, ".zyraa", "index.md");
+  const fileList = files.map((p) => `- ${p}`).join("\n");
+
+  if (existsSync(indexPath)) {
+    const existing = readFileSync(indexPath, "utf-8");
+    const sectionIdx = existing.indexOf(FILE_INDEX_HEADER);
+    if (sectionIdx !== -1) {
+      const summary = existing.slice(0, sectionIdx);
+      writeFileSync(indexPath, `${summary}${FILE_INDEX_HEADER}\n\n${fileList}\n`);
+      return;
+    }
+  }
+
+  writeZyraaIndex(cwd, files);
 }
 
 export function writeZyraaMeta(
