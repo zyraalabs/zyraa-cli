@@ -37,7 +37,7 @@ export type Stage =
   | "done"
   | "error";
 
-const MAX_FIX_ATTEMPTS = 3;
+const MAX_FIX_ATTEMPTS = 5;
 
 export interface AppError {
   message: string;

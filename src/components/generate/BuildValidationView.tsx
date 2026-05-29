@@ -42,7 +42,7 @@ export function BuildValidationView({ stage, fixAttempt, errors, fixedErrors }: 
   return (
     <Box flexDirection="column" gap={1}>
       <Spinner
-        label={`Build issue caught — fixing automatically (attempt ${fixAttempt}/3)`}
+        label={`Build issue caught — fixing automatically (attempt ${fixAttempt}/5)`}
       />
 
       {fixedErrors.length > 0 && (

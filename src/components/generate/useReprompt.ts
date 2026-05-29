@@ -13,7 +13,7 @@ import { scanNewEnvVars, writeEnvFile, type EnvVar } from "../../lib/envScanner.
 import { launchDevServer } from "../../lib/devServer.js";
 import type { AppError, Timings } from "./useGeneration.js";
 
-const MAX_FIX_ATTEMPTS = 3;
+const MAX_FIX_ATTEMPTS = 5;
 
 export type RepromptStage =
   | "analyzing"
