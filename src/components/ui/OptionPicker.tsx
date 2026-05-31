@@ -108,7 +108,9 @@ export function OptionPicker({
     }
     const digit = parseInt(char, 10);
     if (!isNaN(digit) && digit >= 1 && digit <= totalOptions) {
-      setSelectedIndex(digit - 1);
+      const idx = digit - 1;
+      setSelectedIndex(idx);
+      if (idx === options.length) setCustomMode(true);
     }
   });
 
@@ -171,37 +173,36 @@ export function OptionPicker({
         })}
 
         {/* Write your own row */}
-        <Box gap={2} marginTop={1}>
-          <Text color={isOnCustom && !customMode ? theme.brand : theme.fgSubtle}>
-            {isOnCustom && !customMode ? "❯" : " "}
-          </Text>
-          <Text color={isOnCustom && !customMode ? theme.brandLight : theme.fgSubtle} bold={isOnCustom && !customMode}>
-            {String(options.length + 1)}
-          </Text>
-          {!customMode ? (
+        {!customMode && (
+          <Box gap={2} marginTop={1}>
+            <Text color={isOnCustom ? theme.brand : theme.fgSubtle}>
+              {isOnCustom ? "❯" : " "}
+            </Text>
+            <Text color={isOnCustom ? theme.brandLight : theme.fgSubtle} bold={isOnCustom}>
+              {String(options.length + 1)}
+            </Text>
             <Text color={isOnCustom ? theme.fgMuted : theme.fgSubtle}>
               {"Write your own..."}
             </Text>
-          ) : (
-            <Box gap={0}>
-              <Box
-                borderStyle="round"
-                borderColor={theme.borderActive}
-                paddingX={2}
-              >
-                <Box gap={0}>
-                  <Text color={theme.fg}>{customText}</Text>
-                  <BlinkingCursor />
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </Box>
+          </Box>
+        )}
 
-        {/* Custom mode hint */}
+        {/* Custom input — full width, shown below options */}
         {customMode && (
-          <Box paddingLeft={6} marginTop={1}>
-            <Text color={theme.fgSubtle}>{"enter to confirm  ·  esc to cancel"}</Text>
+          <Box flexDirection="column" gap={1} marginTop={1}>
+            <Box
+              borderStyle="round"
+              borderColor={theme.borderActive}
+              paddingX={2}
+              paddingY={0}
+              width={60}
+            >
+              <Text color={theme.fg}>{customText || " "}</Text>
+              <BlinkingCursor />
+            </Box>
+            <Box paddingX={1}>
+              <Text color={theme.fgSubtle}>{"enter to confirm  ·  esc to cancel"}</Text>
+            </Box>
           </Box>
         )}
       </Box>
