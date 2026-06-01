@@ -1,6 +1,6 @@
 {
   "name": "zyraa",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "Terminal-based full stack code generation tool",
   "type": "module",
   "main": "dist/index.js",
