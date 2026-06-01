@@ -11,6 +11,8 @@ import type { QuestionAnswer } from "../lib/types.js";
 interface Props {
   prompt: string;
   onDone: (enrichedPrompt: string) => void;
+  isReprompt?: boolean;
+  framework?: string;
 }
 
 function buildEnrichedPrompt(original: string, answers: QuestionAnswer[]): string {
@@ -20,9 +22,9 @@ function buildEnrichedPrompt(original: string, answers: QuestionAnswer[]): strin
   return `${original}\n\n[User preferences: ${prefs}]`;
 }
 
-export function Clarify({ prompt, onDone }: Props) {
+export function Clarify({ prompt, onDone, isReprompt = false, framework }: Props) {
   const theme = useTheme();
-  const { loading, questions, needsClarification, error } = useClarification(prompt);
+  const { loading, questions, needsClarification, error } = useClarification(prompt, { isReprompt, framework });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<QuestionAnswer[]>([]);
 

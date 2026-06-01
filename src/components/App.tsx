@@ -170,10 +170,16 @@ export function App({ deploy = false }: AppProps) {
   }
 
   if (appState === "clarifying") {
+    const isReprompt = hasZyraaIndex(process.cwd()) || Boolean(activeGenerationId);
     return (
       <Box flexDirection="column" paddingY={1}>
         {sessionHistory}
-        <Clarify prompt={prompt} onDone={handleClarifyDone} />
+        <Clarify
+          prompt={prompt}
+          onDone={handleClarifyDone}
+          isReprompt={isReprompt}
+          framework={activeFramework}
+        />
       </Box>
     );
   }

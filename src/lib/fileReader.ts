@@ -114,6 +114,16 @@ export function refreshZyraaIndex(cwd: string): void {
   writeZyraaIndex(cwd, files);
 }
 
+export function readZyraaMd(cwd: string): string | null {
+  const mdPath = join(cwd, "zyraa.md");
+  if (!existsSync(mdPath)) return null;
+  try {
+    return readFileSync(mdPath, "utf-8").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export function writeZyraaMeta(
   cwd: string,
   generationId: string,
