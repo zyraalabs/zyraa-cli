@@ -196,11 +196,12 @@ export function useReprompt(
           try {
             await installDependencies(process.cwd());
             recordTiming("installing");
-          } catch {
+          } catch (err) {
+            recordTiming("installing");
             setInstallWarning(
               "Dependencies failed — run pnpm install manually",
             );
-            recordTiming("installing");
+            throw err;
           }
         }
 

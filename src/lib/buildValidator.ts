@@ -1,4 +1,6 @@
 import { spawn } from "child_process";
+import { rmSync } from "fs";
+import { join } from "path";
 
 export interface BuildError {
   description: string;
@@ -56,6 +58,8 @@ export function parseErrors(output: string): BuildError[] {
 }
 
 export function runBuild(cwd: string): Promise<BuildResult> {
+  rmSync(join(cwd, ".next"), { recursive: true, force: true });
+
   return new Promise((resolve) => {
     const child = spawn("pnpm", ["build"], {
       cwd,

@@ -255,9 +255,10 @@ export function useGeneration(prompt: string, deploy = false) {
         try {
           await installDependencies(process.cwd());
           recordTiming("installing");
-        } catch {
-          setInstallWarning("Dependencies failed — run pnpm install manually");
+        } catch (err) {
           recordTiming("installing");
+          setInstallWarning("Dependencies failed — run pnpm install manually");
+          throw err;
         }
 
         let fixAttempt = 0;
