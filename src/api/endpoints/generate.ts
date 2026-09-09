@@ -19,14 +19,17 @@ export async function streamGenerate(
 ): Promise<GenerateResult> {
   if (IS_MOCK) return streamMockOutput(onChunk);
 
-  const response = await axiosInstance.post("/api/generate", params, {
-    responseType: "stream",
-  }).catch((err) => {
-    const status = err?.response?.status;
-    const message = err?.response?.data?.error ?? err.message;
-    if (status === 401 || status === 403 || status === 429) throw new Error(message);
-    throw err;
-  });
+  const response = await axiosInstance
+    .post("/api/generate", params, {
+      responseType: "stream",
+    })
+    .catch((err) => {
+      const status = err?.response?.status;
+      const message = err?.response?.data?.error ?? err.message;
+      if (status === 401 || status === 403 || status === 429)
+        throw new Error(message);
+      throw err;
+    });
 
   return new Promise((resolve, reject) => {
     let fullText = "";
@@ -64,7 +67,9 @@ export async function streamGenerate(
       }
     });
 
-    response.data.on("end", () => resolve({ output: fullText, usage, generationId }));
+    response.data.on("end", () =>
+      resolve({ output: fullText, usage, generationId }),
+    );
     response.data.on("error", (err: Error) => reject(err));
   });
 }
