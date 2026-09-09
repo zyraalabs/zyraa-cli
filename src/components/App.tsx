@@ -120,6 +120,7 @@ export function App({ deploy = false }: AppProps) {
   }
 
   function handleRepromptDone(result: RepromptResult) {
+    if (result.vercelProjectId) setActiveVercelProjectId(result.vercelProjectId);
     gitCommit(result.prompt, process.cwd());
     setSessions((prev) => [
       ...prev,

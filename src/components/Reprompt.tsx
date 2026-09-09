@@ -27,7 +27,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, verc
     stage, changedFiles, activeFile, actionWord,
     usage, installWarning, error, timings, selectedCount,
     fixAttempt, fixingErrors, fixedErrors, remainingErrors,
-    deployUrl, deployError,
+    deployUrl, deployError, vercelProjectId: deployedProjectId,
     pendingEnvVars, resolveEnvVars,
     devServerUrl,
   } = useReprompt(prompt, generationId, framework, deploy, vercelProjectId);
@@ -40,6 +40,7 @@ export function Reprompt({ prompt, generationId, framework, deploy = false, verc
       error: error ?? null,
       deployUrl,
       deployError,
+      vercelProjectId: deployedProjectId,
     };
   }
 

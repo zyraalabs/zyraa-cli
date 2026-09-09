@@ -28,9 +28,11 @@ export async function deployProject(
   generationId: string,
   zip: Buffer,
   vercelProjectId?: string,
+  framework?: string,
 ): Promise<DeployResult> {
   const params = new URLSearchParams({ generationId });
   if (vercelProjectId) params.set("vercelProjectId", vercelProjectId);
+  if (framework) params.set("framework", framework);
 
   const envVars = readEnvLocal(process.cwd());
   const envHeader = Buffer.from(JSON.stringify(envVars)).toString("base64");

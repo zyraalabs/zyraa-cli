@@ -38,6 +38,7 @@ export interface RepromptResult {
   error: AppError | null;
   deployUrl: string;
   deployError: string;
+  vercelProjectId: string;
 }
 
 function resolveError(err: unknown): AppError {
@@ -265,7 +266,7 @@ export function useReprompt(
           stageStart.current = Date.now();
           try {
             const zip = zipSourceFiles(process.cwd());
-            const { url, vercelProjectId: pid } = await deployProject(generationId, zip, vercelProjectIdState || undefined);
+            const { url, vercelProjectId: pid } = await deployProject(generationId, zip, vercelProjectIdState || undefined, framework);
             setVercelProjectId(pid);
             writeZyraaMeta(process.cwd(), generationId, framework, pid);
             setDeployUrl(url);

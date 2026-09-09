@@ -330,7 +330,7 @@ export function useGeneration(prompt: string, deploy = false) {
           stageStart.current = Date.now();
           try {
             const zip = zipSourceFiles(process.cwd());
-            const { url, vercelProjectId: pid } = await deployProject(generationId, zip);
+            const { url, vercelProjectId: pid } = await deployProject(generationId, zip, undefined, currentFramework);
             setDeployUrl(url);
             setVercelProjectId(pid);
             writeZyraaMeta(process.cwd(), generationId, currentFramework, pid);
