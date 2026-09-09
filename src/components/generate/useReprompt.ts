@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { readProjectIndex, readFiles, refreshZyraaIndex } from "../../lib/fileReader.js";
+import { readProjectIndex, readFiles, refreshZyraaIndex, writeZyraaMeta } from "../../lib/fileReader.js";
 import { callRepromptSelect } from "../../api/endpoints/repromptSelect.js";
 import { streamReprompt } from "../../api/endpoints/reprompt.js";
 import { parseGenerateResponse } from "../../lib/parser.js";
@@ -265,8 +265,9 @@ export function useReprompt(
           stageStart.current = Date.now();
           try {
             const zip = zipSourceFiles(process.cwd());
-            const { url, vercelProjectId: pid } = await deployProject(generationId, zip, vercelProjectId || undefined);
+            const { url, vercelProjectId: pid } = await deployProject(generationId, zip, vercelProjectIdState || undefined);
             setVercelProjectId(pid);
+            writeZyraaMeta(process.cwd(), generationId, framework, pid);
             setDeployUrl(url);
             recordTiming("deploying");
           } catch (err) {
