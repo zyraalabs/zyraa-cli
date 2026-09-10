@@ -18,7 +18,7 @@ export function startApp(args: string[]): void {
     return;
   }
 
-  const KNOWN_FLAGS = ["--deploy"];
+  const KNOWN_FLAGS = ["--deploy", "--agent"];
   const unknown = args.filter((a) => !KNOWN_FLAGS.includes(a));
 
   if (unknown.length) {
@@ -29,6 +29,7 @@ export function startApp(args: string[]): void {
   }
 
   const deploy = args.includes("--deploy");
+  const agent = args.includes("--agent");
 
-  render(<ThemeProvider><App deploy={deploy} /></ThemeProvider>);
+  render(<ThemeProvider><App deploy={deploy} agent={agent} /></ThemeProvider>);
 }

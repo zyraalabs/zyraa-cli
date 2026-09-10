@@ -20,11 +20,14 @@ export function showHelp(): void {
 
   terminal.section("Flags");
   terminal.option("--deploy", "Publish each build live automatically");
+  terminal.option("--agent", "Build with the agent (beta) instead of the classic pipeline");
   terminal.newLine();
 
   terminal.section("Examples");
   terminal.dim("  $ zyraa");
   terminal.dim("  $ zyraa --deploy");
+  terminal.dim("  $ zyraa --agent");
+  terminal.dim("  $ zyraa --agent --deploy");
   terminal.dim("  $ zyraa login");
   terminal.dim("  $ zyraa config --status");
   terminal.newLine();

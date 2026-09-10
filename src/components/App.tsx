@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, Text, useInput, useApp, useStdout } from "ink";
 import { Generate } from "./Generate.js";
+import { AgentGenerate } from "./AgentGenerate.js";
 import { Reprompt } from "./Reprompt.js";
 import { Clarify } from "./Clarify.js";
 import { SessionSummaryRow } from "./SessionSummary.js";
@@ -17,6 +18,7 @@ type AppState = "idle" | "clarifying" | "generating" | "reprompting" | "confirm-
 
 interface AppProps {
   deploy?: boolean;
+  agent?: boolean;
 }
 
 interface SessionEntry {
@@ -31,7 +33,7 @@ const THEME_ICON: Record<"dark" | "light", string> = {
   light: "○",
 };
 
-export function App({ deploy = false }: AppProps) {
+export function App({ deploy = false, agent = false }: AppProps) {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const theme = useTheme();
@@ -189,7 +191,11 @@ export function App({ deploy = false }: AppProps) {
     return (
       <Box flexDirection="column" paddingY={1}>
         {sessionHistory}
-        <Generate prompt={prompt} deploy={deploy} onDone={handleGenerateDone} />
+        {agent ? (
+          <AgentGenerate prompt={prompt} deploy={deploy} onDone={handleGenerateDone} />
+        ) : (
+          <Generate prompt={prompt} deploy={deploy} onDone={handleGenerateDone} />
+        )}
       </Box>
     );
   }
