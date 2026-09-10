@@ -51,6 +51,8 @@ export function useAgentGeneration(prompt: string, deploy = false) {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [summary, setSummary] = useState("");
   const [thinking, setThinking] = useState({ raw: "", current: "" });
+  const [pendingQuestion, setPendingQuestion] = useState<AskUserRequest | null>(null);
+  const [asked, setAsked] = useState<{ question: string; answer: string }[]>([]);
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number } | null>(null);
   const [error, setError] = useState<AppError | null>(null);
   const [agentNotice, setAgentNotice] = useState("");
@@ -64,6 +66,12 @@ export function useAgentGeneration(prompt: string, deploy = false) {
   const stageStart = useRef(Date.now());
   const sessionStart = useRef(Date.now());
   const envResolverRef = useRef<((values: Record<string, string>) => void) | null>(null);
+  const answerResolverRef = useRef<((label: string) => void) | null>(null);
+
+  function answerQuestion(label: string) {
+    answerResolverRef.current?.(label);
+    answerResolverRef.current = null;
+  }
 
   function recordTiming(key: keyof Timings) {
     const elapsed = (Date.now() - stageStart.current) / 1000;
@@ -136,6 +144,17 @@ export function useAgentGeneration(prompt: string, deploy = false) {
                 return next;
               }),
             onAskUser: (request: AskUserRequest) => {
+              if (request.kind === "choice") {
+                setPendingQuestion(request);
+                return new Promise<Record<string, string>>((resolve) => {
+                  answerResolverRef.current = (label) => {
+                    setPendingQuestion(null);
+                    setAsked((prev) => [...prev, { question: request.question, answer: label }]);
+                    resolve({ answer: label });
+                  };
+                });
+              }
+
               const vars: EnvVar[] = request.fields.map((field) => ({
                 key: field.name,
                 hint: field.description ?? request.question,
@@ -233,6 +252,9 @@ export function useAgentGeneration(prompt: string, deploy = false) {
     steps,
     summary,
     thinking: thinking.current,
+    pendingQuestion,
+    answerQuestion,
+    asked,
     usage,
     error,
     agentNotice,

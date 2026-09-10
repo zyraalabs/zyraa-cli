@@ -106,7 +106,7 @@ export function App({ deploy = false, agent = false }: AppProps) {
   function handleClarifyDone(enrichedPrompt: string) {
     setPrompt(enrichedPrompt);
     const canReprompt = hasZyraaIndex(process.cwd()) || Boolean(activeGenerationId);
-    setAppState(canReprompt ? "reprompting" : "generating");
+    setAppState(!agent && canReprompt ? "reprompting" : "generating");
   }
 
   function handleGenerateDone(result: GenerationResult) {

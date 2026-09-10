@@ -15,7 +15,9 @@ const CONFIG_FILE = join(homedir(), ".zyra", "config");
 
 export interface AskUserRequest {
   question: string;
-  fields: { name: string; description?: string; secret?: boolean }[];
+  kind: "choice" | "secret";
+  options: { label: string; description?: string }[];
+  fields: { name: string; description?: string }[];
 }
 
 export type ActionKind =
@@ -177,12 +179,25 @@ async function handleToolCall(
     case "run_command":
       return runCommandTool(cwd, input);
     case "ask_user": {
+      const kind = input.kind === "secret" ? "secret" : "choice";
+      const options = Array.isArray(input.options)
+        ? (input.options as AskUserRequest["options"])
+        : [];
       const fields = Array.isArray(input.fields)
         ? (input.fields as AskUserRequest["fields"])
         : [];
-      if (!fields.length) return { ok: false, result: "ask_user needs at least one field." };
+
+      if (kind === "secret" && !fields.length) {
+        return { ok: false, result: "ask_user with kind \"secret\" needs at least one field." };
+      }
+      if (kind === "choice" && options.length < 2) {
+        return { ok: false, result: "ask_user with kind \"choice\" needs at least two options." };
+      }
+
       const answers = await events.onAskUser({
         question: typeof input.question === "string" ? input.question : "Input needed",
+        kind,
+        options,
         fields,
       });
       return { ok: true, result: JSON.stringify(answers) };

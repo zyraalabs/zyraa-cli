@@ -5,6 +5,7 @@ import { Divider } from "./ui/Divider.js";
 import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
 import { EnvCollector } from "./generate/EnvCollector.js";
+import { QuestionPrompt } from "./generate/QuestionPrompt.js";
 import { useTheme } from "./ui/ThemeContext.js";
 import { useAgentGeneration, type AgentStep } from "./generate/useAgentGeneration.js";
 import type { ActionKind } from "../agent/client.js";
@@ -84,6 +85,9 @@ export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
     steps,
     summary,
     thinking,
+    pendingQuestion,
+    answerQuestion,
+    asked,
     usage,
     error,
     agentNotice,
@@ -135,7 +139,29 @@ export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
         </Box>
       )}
 
-      {stage === "building" && (
+      {asked.length > 0 && (
+        <Box flexDirection="column" paddingX={2} marginTop={1}>
+          {asked.map((entry, i) => (
+            <Box key={i} gap={1} width={textWidth}>
+              <Text color={theme.brand}>{"?"}</Text>
+              <Text color={theme.fgSubtle}>{entry.question}</Text>
+              <Text color={theme.fg}>{entry.answer}</Text>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {pendingQuestion && (
+        <Box paddingX={2}>
+          <QuestionPrompt
+            request={pendingQuestion}
+            width={textWidth}
+            onAnswer={answerQuestion}
+          />
+        </Box>
+      )}
+
+      {stage === "building" && !pendingQuestion && (
         <Box flexDirection="column" paddingX={2} marginTop={1}>
           <Spinner label={thinking !== "" ? "thinking" : "working"} />
           {thinking !== "" && (
