@@ -6,10 +6,64 @@ import { DoneView } from "./generate/DoneView.js";
 import { ErrorView } from "./generate/ErrorView.js";
 import { EnvCollector } from "./generate/EnvCollector.js";
 import { useTheme } from "./ui/ThemeContext.js";
-import { useAgentGeneration } from "./generate/useAgentGeneration.js";
+import { useAgentGeneration, type AgentStep } from "./generate/useAgentGeneration.js";
+import type { ActionKind } from "../agent/client.js";
 import type { GenerationResult } from "./generate/useGeneration.js";
 
 const MAX_SHOWN = 8;
+
+const VERB: Record<ActionKind, string> = {
+  creating: "create",
+  editing: "edit",
+  reading: "read",
+  exploring: "explore",
+  running: "run",
+  asking: "ask",
+};
+
+const ICON: Record<ActionKind, string> = {
+  creating: "+",
+  editing: "~",
+  reading: "→",
+  exploring: "⌕",
+  running: "$",
+  asking: "?",
+};
+
+function StepRow({ step }: { step: AgentStep }) {
+  const theme = useTheme();
+  const pending = step.ok === null;
+  const failed = step.ok === false;
+
+  const accent = failed
+    ? theme.warn
+    : step.kind === "creating"
+      ? theme.success
+      : step.kind === "editing"
+        ? theme.brand
+        : theme.fgSubtle;
+
+  return (
+    <Box flexDirection="column">
+      <Box gap={1}>
+        <Text color={accent} bold={!pending}>{ICON[step.kind]}</Text>
+        <Text color={pending ? theme.fgMuted : accent}>{VERB[step.kind]}</Text>
+        <Box flexGrow={1}>
+          <Text color={pending ? theme.fgMuted : theme.fg} wrap="truncate-start">
+            {step.target}
+          </Text>
+        </Box>
+        {step.note !== "" && !failed && <Text color={theme.fgSubtle}>{step.note}</Text>}
+        {failed && <Text color={theme.warn}>{"failed"}</Text>}
+      </Box>
+      {failed && step.detail !== "" && (
+        <Box paddingLeft={4}>
+          <Text color={theme.warn} wrap="truncate-end">{step.detail}</Text>
+        </Box>
+      )}
+    </Box>
+  );
+}
 
 interface Props {
   prompt: string;
@@ -27,6 +81,7 @@ export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
     reasoning,
     steps,
     summary,
+    thinking,
     usage,
     error,
     agentNotice,
@@ -73,19 +128,19 @@ export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
       {visible.length > 0 && (
         <Box flexDirection="column" paddingX={2}>
           {visible.map((step, i) => (
-            <Box key={i} gap={2}>
-              <Text color={step.ok === null ? theme.fgSubtle : step.ok ? theme.success : theme.warn}>
-                {step.ok === null ? "·" : step.ok ? "✓" : "✗"}
-              </Text>
-              <Text color={step.ok === null ? theme.fgMuted : theme.fgSubtle}>{step.detail}</Text>
-            </Box>
+            <StepRow key={i} step={step} />
           ))}
         </Box>
       )}
 
       {stage === "building" && (
-        <Box paddingX={2} marginTop={1}>
-          <Spinner label="working" />
+        <Box flexDirection="column" paddingX={2} marginTop={1}>
+          <Spinner label={thinking !== "" ? "thinking" : "working"} />
+          {thinking !== "" && (
+            <Box paddingLeft={2}>
+              <Text color={theme.fgSubtle} wrap="truncate-end">{thinking}</Text>
+            </Box>
+          )}
         </Box>
       )}
 
@@ -120,7 +175,13 @@ export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
           </Box>
           <DoneView
             framework={framework}
-            fileCount={steps.filter((s) => s.ok === true).length}
+            fileCount={
+              new Set(
+                steps
+                  .filter((s) => s.ok === true && (s.kind === "creating" || s.kind === "editing"))
+                  .map((s) => s.target),
+              ).size
+            }
             usage={usage}
             timings={timings}
             installWarning=""

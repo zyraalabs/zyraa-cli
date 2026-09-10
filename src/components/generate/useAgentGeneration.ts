@@ -4,7 +4,7 @@ import { join } from "path";
 import { detectFramework } from "../generation/detectFramework.js";
 import { runScaffoldCommand } from "../../lib/scaffold.js";
 import { installDependencies } from "../../lib/projectSetup.js";
-import { runAgentSession, type AskUserRequest } from "../../agent/client.js";
+import { runAgentSession, type ActionKind, type AskUserRequest } from "../../agent/client.js";
 import { refreshZyraaIndex, writeZyraaMeta } from "../../lib/fileReader.js";
 import { zipSourceFiles } from "../../lib/deployer.js";
 import { deployProject } from "../../api/endpoints/deploy.js";
@@ -24,7 +24,10 @@ export type AgentStage =
   | "error";
 
 export interface AgentStep {
+  kind: ActionKind;
+  target: string;
   detail: string;
+  note: string;
   ok: boolean | null;
 }
 
@@ -47,6 +50,7 @@ export function useAgentGeneration(prompt: string, deploy = false) {
   const [reasoning, setReasoning] = useState("");
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [summary, setSummary] = useState("");
+  const [thinking, setThinking] = useState({ raw: "", current: "" });
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number } | null>(null);
   const [error, setError] = useState<AppError | null>(null);
   const [agentNotice, setAgentNotice] = useState("");
@@ -105,14 +109,27 @@ export function useAgentGeneration(prompt: string, deploy = false) {
           process.cwd(),
           {
             onText: (text) => setSummary((prev) => (prev + text).slice(-2000)),
-            onToolStart: (detail) =>
-              setSteps((prev) => [...prev, { detail, ok: null }].slice(-MAX_VISIBLE_STEPS)),
-            onToolEnd: (detail) =>
+            onThinking: (delta) =>
+              setThinking((prev) => {
+                const merged = (prev.raw + delta).slice(-4000);
+                const sentences = merged
+                  .split(/(?<=[.!?])\s+/)
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                return { raw: merged, current: sentences[sentences.length - 1] ?? "" };
+              }),
+            onToolStart: (action) => {
+              setThinking({ raw: "", current: "" });
+              setSteps((prev) =>
+                [...prev, { ...action, ok: null as boolean | null }].slice(-MAX_VISIBLE_STEPS),
+              );
+            },
+            onToolEnd: (action, ok) =>
               setSteps((prev) => {
                 const next = [...prev];
                 for (let i = next.length - 1; i >= 0; i--) {
                   if (next[i].ok === null) {
-                    next[i] = { detail: next[i].detail, ok: !detail.startsWith("failed") };
+                    next[i] = { ...next[i], ok, detail: ok ? next[i].detail : action.detail };
                     break;
                   }
                 }
@@ -193,7 +210,11 @@ export function useAgentGeneration(prompt: string, deploy = false) {
       prompt,
       framework,
       reasoning,
-      fileCount: steps.filter((s) => s.detail.startsWith("write file") || s.detail.startsWith("edit file")).length,
+      fileCount: new Set(
+        steps
+          .filter((s) => s.ok === true && (s.kind === "creating" || s.kind === "editing"))
+          .map((s) => s.target),
+      ).size,
       timings,
       usage,
       installWarning: "",
@@ -211,6 +232,7 @@ export function useAgentGeneration(prompt: string, deploy = false) {
     reasoning,
     steps,
     summary,
+    thinking: thinking.current,
     usage,
     error,
     agentNotice,

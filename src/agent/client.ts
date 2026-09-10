@@ -18,10 +18,26 @@ export interface AskUserRequest {
   fields: { name: string; description?: string; secret?: boolean }[];
 }
 
+export type ActionKind =
+  | "creating"
+  | "editing"
+  | "reading"
+  | "exploring"
+  | "running"
+  | "asking";
+
+export interface AgentAction {
+  kind: ActionKind;
+  target: string;
+  detail: string;
+  note: string;
+}
+
 export interface AgentEvents {
   onText: (text: string) => void;
-  onToolStart: (detail: string) => void;
-  onToolEnd: (detail: string) => void;
+  onThinking: (delta: string) => void;
+  onToolStart: (action: AgentAction) => void;
+  onToolEnd: (action: AgentAction, ok: boolean) => void;
   onAskUser: (request: AskUserRequest) => Promise<Record<string, string>>;
 }
 
@@ -86,9 +102,22 @@ export function runAgentSession(
 
       if (msg.type === "progress") {
         const detail = typeof msg.detail === "string" ? msg.detail : "";
-        if (msg.event === "text") events.onText(detail);
-        else if (msg.event === "tool_start") events.onToolStart(detail);
-        else if (msg.event === "tool_end") events.onToolEnd(detail);
+        if (msg.event === "text") {
+          events.onText(detail);
+          return;
+        }
+        if (msg.event === "thinking") {
+          events.onThinking(detail);
+          return;
+        }
+        const action: AgentAction = {
+          kind: (typeof msg.kind === "string" ? msg.kind : "running") as AgentAction["kind"],
+          target: typeof msg.target === "string" ? msg.target : "",
+          detail,
+          note: typeof msg.note === "string" ? msg.note : "",
+        };
+        if (msg.event === "tool_start") events.onToolStart(action);
+        else if (msg.event === "tool_end") events.onToolEnd(action, msg.ok !== false);
         return;
       }
 
