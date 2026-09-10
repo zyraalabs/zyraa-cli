@@ -1,6 +1,5 @@
 import { render } from "ink";
 import { App } from "./components/App.js";
-import { Generate } from "./components/Generate.js";
 import { Login } from "./components/Login.js";
 import { ThemeProvider } from "./components/ui/ThemeContext.js";
 import { showHelp } from "./components/help.js";
@@ -19,14 +18,17 @@ export function startApp(args: string[]): void {
     return;
   }
 
-  const deploy = args.includes("--deploy");
-  const filteredArgs = args.filter((a) => a !== "--deploy");
-  const prompt = filteredArgs.join(" ").trim();
+  const KNOWN_FLAGS = ["--deploy"];
+  const unknown = args.filter((a) => !KNOWN_FLAGS.includes(a));
 
-  if (!prompt) {
-    render(<ThemeProvider><App deploy={deploy} /></ThemeProvider>);
+  if (unknown.length) {
+    console.error(`Unknown argument: ${unknown[0]}\n`);
+    showHelp();
+    process.exitCode = 1;
     return;
   }
 
-  render(<ThemeProvider><Generate prompt={prompt} deploy={deploy} /></ThemeProvider>);
+  const deploy = args.includes("--deploy");
+
+  render(<ThemeProvider><App deploy={deploy} /></ThemeProvider>);
 }
