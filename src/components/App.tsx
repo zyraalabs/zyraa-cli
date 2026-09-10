@@ -229,6 +229,7 @@ export function App({ deploy = false, agent = false }: AppProps) {
           <Box flexGrow={1}>
             <Text color={theme.brandLight} bold>{"Z  Zyraa"}</Text>
             <Text color={theme.fgMuted}>{"  ·  AI-powered full-stack builder"}</Text>
+            {agent && <Text color={theme.brand} bold>{"  ·  agent"}</Text>}
           </Box>
           <Text color={theme.fgSubtle}>{THEME_ICON[scheme]}</Text>
           <Text color={theme.fgSubtle}>{"  "}</Text>
@@ -240,6 +241,13 @@ export function App({ deploy = false, agent = false }: AppProps) {
 
       <Box paddingX={1} flexDirection="column" gap={1}>
         <InputBox value={displayInput} focused />
+        {agent && (
+          <Box paddingX={1} gap={2}>
+            <Text color={theme.brand} bold>{"◆"}</Text>
+            <Text color={theme.brand}>{"agent mode"}</Text>
+            <Text color={theme.fgMuted}>{"— reads your project and fixes its own errors"}</Text>
+          </Box>
+        )}
         {deploy && (
           <Box paddingX={1} gap={2}>
             <Text color={theme.brand} bold>{"⬆"}</Text>
