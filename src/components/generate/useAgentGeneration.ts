@@ -116,7 +116,7 @@ export function useAgentGeneration(prompt: string, deploy = false) {
                   .split(/(?<=[.!?])\s+/)
                   .map((s) => s.trim())
                   .filter(Boolean);
-                return { raw: merged, current: sentences[sentences.length - 1] ?? "" };
+                return { raw: merged, current: sentences.slice(-3).join(" ") };
               }),
             onToolStart: (action) => {
               setThinking({ raw: "", current: "" });

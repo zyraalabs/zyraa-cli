@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Box, Text, useApp } from "ink";
+import { Box, Text, useApp, useStdout } from "ink";
 import { Spinner } from "./ui/Spinner.js";
 import { Divider } from "./ui/Divider.js";
 import { DoneView } from "./generate/DoneView.js";
@@ -30,7 +30,7 @@ const ICON: Record<ActionKind, string> = {
   asking: "?",
 };
 
-function StepRow({ step }: { step: AgentStep }) {
+function StepRow({ step, width }: { step: AgentStep; width: number }) {
   const theme = useTheme();
   const pending = step.ok === null;
   const failed = step.ok === false;
@@ -57,8 +57,8 @@ function StepRow({ step }: { step: AgentStep }) {
         {failed && <Text color={theme.warn}>{"failed"}</Text>}
       </Box>
       {failed && step.detail !== "" && (
-        <Box paddingLeft={4}>
-          <Text color={theme.warn} wrap="truncate-end">{step.detail}</Text>
+        <Box paddingLeft={4} width={width}>
+          <Text color={theme.warn}>{step.detail}</Text>
         </Box>
       )}
     </Box>
@@ -73,7 +73,9 @@ interface Props {
 
 export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const theme = useTheme();
+  const textWidth = Math.max(40, (stdout?.columns ?? 80) - 6);
 
   const {
     stage,
@@ -128,7 +130,7 @@ export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
       {visible.length > 0 && (
         <Box flexDirection="column" paddingX={2}>
           {visible.map((step, i) => (
-            <StepRow key={i} step={step} />
+            <StepRow key={i} step={step} width={textWidth} />
           ))}
         </Box>
       )}
@@ -137,8 +139,8 @@ export function AgentGenerate({ prompt, onDone, deploy = false }: Props) {
         <Box flexDirection="column" paddingX={2} marginTop={1}>
           <Spinner label={thinking !== "" ? "thinking" : "working"} />
           {thinking !== "" && (
-            <Box paddingLeft={2}>
-              <Text color={theme.fgSubtle} wrap="truncate-end">{thinking}</Text>
+            <Box paddingLeft={2} width={textWidth}>
+              <Text color={theme.fgSubtle}>{thinking}</Text>
             </Box>
           )}
         </Box>
